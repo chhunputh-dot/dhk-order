@@ -39,6 +39,13 @@
         .viewer-info { color: white; margin-top: 15px; text-align: center; font-size: 20px; }
         
         .loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; justify-content: center; align-items: center; font-weight: bold; flex-direction: column; }
+        
+        .camera-btn { background: var(--secondary); color: white; padding: 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        .camera-btn:hover { background: var(--primary); }
+        
+        /* Fast save indicator */
+        .save-toast { position: fixed; bottom: 20px; right: 20px; background: var(--success); color: white; padding: 10px 20px; border-radius: 30px; display: none; align-items: center; gap: 8px; z-index: 10000; animation: slideIn 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
     </style>
 </head>
 <body>
@@ -46,6 +53,10 @@
 <div id="loading" class="loading-overlay">
     <i class="fas fa-spinner fa-spin fa-3x" style="color:var(--primary); margin-bottom:10px;"></i>
     <div>កំពុងរក្សាទុកទៅ Cloud... | 正在同步...</div>
+</div>
+
+<div id="saveToast" class="save-toast">
+    <i class="fas fa-check-circle"></i> រក្សាទុករួចរាល់ | 保存成功
 </div>
 
 <div class="container">
@@ -68,7 +79,15 @@
                 </select>
             </div>
             <div><label>បរិមាណ | 数量</label><input type="text" id="quantity" class="form-control" required placeholder="ឧ៖ 100pcs"></div>
-            <div><label>រូបភាព | 图片</label><input type="file" id="productImage" class="form-control" accept="image/*" required></div>
+            <div>
+                <label>រូបភាព | 图片</label>
+                <div style="display: flex; gap: 5px;">
+                    <input type="file" id="productImage" class="form-control" accept="image/*" capture="environment" style="flex: 1;">
+                    <button type="button" class="camera-btn" onclick="openCamera('productImage')">
+                        <i class="fas fa-camera"></i>
+                    </button>
+                </div>
+            </div>
             <button type="submit" class="btn" style="background:var(--primary);"><i class="fas fa-save"></i> រក្សាទុក | 保存</button>
         </form>
     </div>
@@ -116,7 +135,80 @@
 <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz-TozK_2ZHANU2To8TWgHGMNnixm1__A5q446Nl06WFYBqQ8CfVJ3aeaPxd2J6ssF_vw/exec"; 
     
-    let orders = []; let archive = []; let showingArchive = false; const PASS = "1234";
+    let orders = []; 
+    let archive = []; 
+    let showingArchive = false; 
+    const PASS = "1234";
+    
+    // Debounce timer for save
+    let saveTimeout = null;
+    let isSaving = false;
+    let pendingSave = false;
+
+    // Show toast notification
+    function showToast(message = null) {
+        const toast = document.getElementById('saveToast');
+        toast.style.display = 'flex';
+        setTimeout(() => { toast.style.display = 'none'; }, 2000);
+    }
+
+    // Open camera immediately
+    function openCamera(inputId) {
+        const fileInput = document.getElementById(inputId);
+        fileInput.setAttribute('capture', 'environment');
+        fileInput.click();
+    }
+
+    // Optimistic save - updates UI immediately, saves to cloud in background
+    async function saveToCloud(showLoading = false) {
+        // If there's already a save pending, just mark for another save
+        if (isSaving) {
+            pendingSave = true;
+            return;
+        }
+
+        isSaving = true;
+        
+        // Show loading only for important operations (closeMonth, deleteMonth)
+        if (showLoading) {
+            document.getElementById('loading').style.display = 'flex';
+        }
+
+        try {
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify({ action: "saveAll", orders: orders, archive: archive })
+            });
+            
+            // Show success toast
+            showToast();
+            
+        } catch (e) {
+            console.error("Save error:", e);
+        } finally {
+            if (showLoading) {
+                document.getElementById('loading').style.display = 'none';
+            }
+            isSaving = false;
+            
+            // If there's a pending save, do it now
+            if (pendingSave) {
+                pendingSave = false;
+                saveToCloud(showLoading);
+            }
+        }
+    }
+
+    // Debounced save - groups multiple rapid changes
+    function debouncedSave(showLoading = false) {
+        if (saveTimeout) {
+            clearTimeout(saveTimeout);
+        }
+        saveTimeout = setTimeout(() => {
+            saveToCloud(showLoading);
+        }, 500); // Wait 500ms after last change before saving
+    }
 
     async function loadFromCloud() {
         document.getElementById('loading').style.display = 'flex';
@@ -125,24 +217,20 @@
             const data = await response.json();
             orders = []; archive = [];
             data.forEach(row => {
-                const item = { id: row[0], customer: row[2], type: row[3], qty: row[4], img: row[5], date: row[6], status: row[8] };
+                const item = { 
+                    id: row[0], 
+                    customer: row[2], 
+                    type: row[3], 
+                    qty: row[4], 
+                    img: row[5], 
+                    date: row[6] ? row[6].split('T')[0] : row[6], // Clean date on load
+                    status: row[8] 
+                };
                 if (row[9] === "current") orders.push(item); else archive.push(item);
             });
             render();
-        } catch (e) { console.log("Load Error"); }
+        } catch (e) { console.log("Load Error", e); }
         document.getElementById('loading').style.display = 'none';
-    }
-
-    async function saveToCloud() {
-        document.getElementById('loading').style.display = 'flex';
-        try {
-            await fetch(SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                body: JSON.stringify({ action: "saveAll", orders: orders, archive: archive })
-            });
-            setTimeout(() => { document.getElementById('loading').style.display = 'none'; render(); }, 2000);
-        } catch (e) { document.getElementById('loading').style.display = 'none'; }
     }
 
     function render(data = (showingArchive ? archive : orders)) {
@@ -151,7 +239,8 @@
         const gallery = document.getElementById('gallery');
         const gallerySummary = document.getElementById('gallerySummary');
         
-        tableBody.innerHTML = ''; gallery.innerHTML = '';
+        tableBody.innerHTML = ''; 
+        gallery.innerHTML = '';
         let totalCount = data.length;
 
         data.forEach(order => {
@@ -161,10 +250,10 @@
             
             tableBody.innerHTML += `
                 <tr>
-                    <td><b>${order.customer}</b></td>
-                    <td>${order.type}</td>
-                    <td><b style="color:red">${order.qty}</b></td>
-                    <td>${order.date}</td>
+                    <td><b>${escapeHtml(order.customer)}</b></td>
+                    <td>${escapeHtml(order.type)}</td>
+                    <td><b style="color:red">${escapeHtml(order.qty)}</b></td>
+                    <td>${formatDate(order.date)}</td>
                     <td><button onclick="toggleStatus(${order.id})" class="btn-status ${statusClass}">${statusLabel}</button></td>
                     <td>
                         <button onclick="printInvoice(${order.id})" class="btn" style="background:#2ecc71; padding:5px 10px;"><i class="fas fa-print"></i></button>
@@ -174,9 +263,9 @@
 
             gallery.innerHTML += `
                 <div class="image-item">
-                    <img src="${order.img}" onclick="viewImage('${order.img}', '${order.customer}', '${order.qty}')">
+                    <img src="${order.img}" onclick="viewImage('${order.img}', '${escapeHtml(order.customer)}', '${escapeHtml(order.qty)}')">
                     <div style="padding:10px;">
-                        <h4>${order.customer}</h4>
+                        <h4>${escapeHtml(order.customer)}</h4>
                         <span style="color:${isShipped ? 'green' : '#f39c12'}; font-weight:bold;">${isShipped ? '✅ 已发货' : '生产中'}</span>
                         <button class="btn btn-edit" onclick="editItem(${order.id})"><i class="fas fa-edit"></i> កែរូប</button>
                     </div>
@@ -191,17 +280,30 @@
         gallerySummary.innerHTML = `សរុប: ${totalCount} កម្មង់`;
     }
 
+    // Escape HTML to prevent XSS
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function formatDate(dateString) {
+        if (!dateString) return '';
+        return dateString.split('T')[0];
+    }
+
     document.getElementById('orderForm').onsubmit = function(e) {
         e.preventDefault();
         const reader = new FileReader();
         reader.onload = function(ev) {
-            // កែសម្រួលទម្រង់ថ្ងៃខែទៅជា YYYY-MM-DD
             const now = new Date();
             const year = now.getFullYear();
             const month = String(now.getMonth() + 1).padStart(2, '0');
             const day = String(now.getDate()).padStart(2, '0');
             const formattedDate = `${year}-${month}-${day}`;
 
+            // Add new order
             orders.push({ 
                 id: Date.now(), 
                 customer: document.getElementById('customerName').value, 
@@ -211,35 +313,67 @@
                 date: formattedDate, 
                 status: 'pending' 
             });
-            saveToCloud(); e.target.reset();
+            
+            // Render immediately (optimistic update)
+            render();
+            
+            // Save to cloud in background
+            debouncedSave();
+            
+            e.target.reset();
         };
-        reader.readAsDataURL(document.getElementById('productImage').files[0]);
+        if (document.getElementById('productImage').files[0]) {
+            reader.readAsDataURL(document.getElementById('productImage').files[0]);
+        } else {
+            alert('សូមជ្រើសរើសរូបភាព | 请选择图片');
+        }
     };
 
     function toggleStatus(id) { 
-        orders = orders.map(o => { if(o.id === id) o.status = (o.status === 'pending' ? 'shipped' : 'pending'); return o; }); 
-        saveToCloud(); 
+        orders = orders.map(o => { 
+            if(o.id === id) o.status = (o.status === 'pending' ? 'shipped' : 'pending'); 
+            return o; 
+        }); 
+        // Render immediately
+        render();
+        // Debounced save
+        debouncedSave();
     }
 
     function deleteSingle(id) {
         if(confirm("លុប?") && prompt("Pass:") === PASS) {
             if(showingArchive) archive = archive.filter(o => o.id !== id);
             else orders = orders.filter(o => o.id !== id);
-            saveToCloud();
+            // Render immediately
+            render();
+            // Debounced save
+            debouncedSave();
         }
     }
     
     function viewImage(src, name, qty) {
         document.getElementById('viewer').style.display = 'flex';
         document.getElementById('viewerImg').src = src;
-        document.getElementById('viewerInfo').innerHTML = `<div><b>រោងចក្រ | 工厂:</b> ${name}</div><div><b>ចំនួន | 数量:</b> <span style="color: #ff4d4d;">${qty}</span></div>`;
+        document.getElementById('viewerInfo').innerHTML = `<div><b>រោងចក្រ | 工厂:</b> ${escapeHtml(name)}</div><div><b>ចំនួន | 数量:</b> <span style="color: #ff4d4d;">${escapeHtml(qty)}</span></div>`;
     }
 
     function editItem(id) {
-        const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*';
+        const input = document.createElement('input'); 
+        input.type = 'file'; 
+        input.accept = 'image/*';
+        input.setAttribute('capture', 'environment');
         input.onchange = e => {
             const reader = new FileReader();
-            reader.onload = ev => { orders = orders.map(o => { if(o.id === id) o.img = ev.target.result; return o; }); saveToCloud(); };
+            reader.onload = ev => { 
+                orders = orders.map(o => { 
+                    if(o.id === id) o.img = ev.target.result; 
+                    return o; 
+                }); 
+                // Render immediately
+                render();
+                // Debounced save
+                debouncedSave();
+            };
             reader.readAsDataURL(e.target.files[0]);
         };
         input.click();
@@ -247,19 +381,69 @@
 
     function printInvoice(id) {
         const order = orders.find(o => o.id === id) || archive.find(o => o.id === id);
+        if (!order) return;
+        
         const win = window.open('', '_blank');
-        win.document.write(`<html><head><style>body{font-family:'Khmer OS Battambang', 'Microsoft YaHei';padding:30px;text-align:center;} table{width:100%;border-collapse:collapse;margin:20px 0;} th,td{border:1px solid #ddd;padding:12px;text-align:left;}</style></head><body><h2>DE HENG KHAI (CAMBODIA) CO.,LTD.</h2><h3>德恒凯(柬埔寨)塑胶印刷制品有限公司</h3><hr><p align="left"><b>រោងចក្រ | 工厂:</b> ${order.customer} | <b>ថ្ងៃទី:</b> ${order.date}</p><table><tr><th>ប្រភេទ | 类型</th><td>${order.type}</td></tr><tr><th>បរិមាណ | 数量</th><td>${order.qty}</td></tr><tr><th>ស្ថានភាព | 状态</th><td>${order.status === 'pending' ? '生产中' : '已发货'}</td></tr></table><img src="${order.img}" style="max-width:500px; border:1px solid #eee;"><script>setTimeout(()=>{window.print();window.close();},500);<\/script></body></html>`);
+        win.document.write(`<html>
+            <head>
+                <style>
+                    body{font-family:'Khmer OS Battambang', 'Microsoft YaHei';padding:30px;text-align:center;}
+                    table{width:100%;border-collapse:collapse;margin:20px 0;}
+                    th,td{border:1px solid #ddd;padding:12px;text-align:left;}
+                </style>
+            </head>
+            <body>
+                <h2>DE HENG KHAI (CAMBODIA) CO.,LTD.</h2>
+                <h3>德恒凯(柬埔寨)塑胶印刷制品有限公司</h3>
+                <hr>
+                <p align="left"><b>រោងចក្រ | 工厂:</b> ${escapeHtml(order.customer)} | <b>ថ្ងៃទី:</b> ${formatDate(order.date)}</p>
+                <table>
+                    <tr><th>ប្រភេទ | 类型</th><td>${escapeHtml(order.type)}</td></tr>
+                    <tr><th>បរិមាណ | 数量</th><td>${escapeHtml(order.qty)}</td></tr>
+                    <tr><th>ស្ថានភាព | 状态</th><td>${order.status === 'pending' ? '生产中' : '已发货'}</td></tr>
+                </table>
+                <img src="${order.img}" style="max-width:500px; border:1px solid #eee;">
+                <script>
+                    setTimeout(()=>{ window.print(); window.close(); }, 500);
+                <\/script>
+            </body>
+        </html>`);
     }
 
-    function closeMonth() { if(confirm("结帐?") && prompt("Pass:")===PASS) { archive = [...archive, ...orders]; orders = []; saveToCloud(); } }
-    function deleteMonth() { if(confirm("删除?") && prompt("Pass:")===PASS) { orders = []; saveToCloud(); } }
-    function filterData() { const q = document.getElementById('searchInput').value.toLowerCase(); render(orders.filter(o => o.customer.toLowerCase().includes(q))); }
-    function toggleArchive() { showingArchive = !showingArchive; render(); }
+    function closeMonth() { 
+        if(confirm("បិទបញ្ជីខែនេះ? 结帐?") && prompt("Pass:") === PASS) { 
+            archive = [...archive, ...orders]; 
+            orders = []; 
+            render();
+            saveToCloud(true); // Show loading for important operation
+        } 
+    }
+    
+    function deleteMonth() { 
+        if(confirm("លុបបញ្ជីខែនេះ? 删除?") && prompt("Pass:") === PASS) { 
+            orders = []; 
+            render();
+            saveToCloud(true); // Show loading for important operation
+        } 
+    }
+    
+    function filterData() { 
+        const q = document.getElementById('searchInput').value.toLowerCase(); 
+        render(orders.filter(o => o.customer.toLowerCase().includes(q))); 
+    }
+    
+    function toggleArchive() { 
+        showingArchive = !showingArchive; 
+        render(); 
+    }
 
     window.onload = () => { 
         loadFromCloud(); 
         const now = new Date();
-        document.getElementById('date-display').innerHTML = "ថ្ងៃនេះ | 今天: " + now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,'0') + "-" + String(now.getDate()).padStart(2,'0'); 
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        document.getElementById('date-display').innerHTML = "ថ្ងៃនេះ | 今天: " + `${year}-${month}-${day}`; 
     };
 </script>
 </body>

@@ -43,10 +43,9 @@
         .camera-btn { background: var(--secondary); color: white; padding: 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
         .camera-btn:hover { background: var(--primary); }
         
+        /* Fast save indicator */
         .save-toast { position: fixed; bottom: 20px; right: 20px; background: var(--success); color: white; padding: 10px 20px; border-radius: 30px; display: none; align-items: center; gap: 8px; z-index: 10000; animation: slideIn 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        
-        .date-picker { display: flex; gap: 5px; align-items: center; }
     </style>
 </head>
 <body>
@@ -81,12 +80,6 @@
             </div>
             <div><label>បរិមាណ | 数量</label><input type="text" id="quantity" class="form-control" required placeholder="ឧ៖ 100pcs"></div>
             <div>
-                <label>កាលបរិច្ឆេទ | 日期</label>
-                <div class="date-picker">
-                    <input type="date" id="orderDate" class="form-control" required>
-                </div>
-            </div>
-            <div>
                 <label>រូបភាព | 图片</label>
                 <div style="display: flex; gap: 5px;">
                     <input type="file" id="productImage" class="form-control" accept="image/*" capture="environment" style="flex: 1;">
@@ -102,8 +95,8 @@
     <div class="card" style="background: #eef2f7;">
         <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 15px;">
             <h3><i class="fas fa-search"></i> ស្វែងរក | 搜索</h3>
-            <input type="text" id="searchInput" class="form-control" style="flex:1" placeholder="ស្វែងរកតាមរោងចក្រ..." onkeyup="filterData()">
-            <button class="btn" style="background:#6c757d;" onclick="toggleArchive()"><i class="fas fa-history"></i> <span id="archiveBtnText">ខែចាស់ | 存档</span></button>
+            <input type="text" id="searchInput" class="form-control" style="flex:1" placeholder="ស្វែងរក..." onkeyup="filterData()">
+            <button class="btn" style="background:#6c757d;" onclick="toggleArchive()"><i class="fas fa-history"></i> ខែចាស់ | 存档</button>
         </div>
         <div id="gallerySummary" style="font-weight: bold; color: var(--primary); margin-bottom: 10px;"></div>
         <div id="gallery" class="gallery"></div>
@@ -121,7 +114,7 @@
         <div style="overflow-x: auto;">
             <table>
                 <thead>
-                    <tr>
+                    <tr style="${order.status==='pending' ? 'background:#fff3cd;' : ''}">
                         <th>រោងចក្រ | 工厂</th>
                         <th>ប្រភេទ | 类型</th>
                         <th>បរិមាណ | 数量</th>
@@ -152,23 +145,6 @@
     let isSaving = false;
     let pendingSave = false;
 
-    // Get today date string for default value
-    function getTodayString() {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    }
-
-    // Set default date to today when page loads
-    function setDefaultDate() {
-        const dateInput = document.getElementById('orderDate');
-        if (dateInput) {
-            dateInput.value = getTodayString();
-        }
-    }
-
     // Show toast notification
     function showToast(message = null) {
         const toast = document.getElementById('saveToast');
@@ -180,13 +156,12 @@
     function openCamera(inputId) {
         const fileInput = document.getElementById(inputId);
         fileInput.setAttribute('capture', 'environment');
-        setTimeout(() => {
-            fileInput.click();
-        }, 100);
+        fileInput.click();
     }
 
     // Optimistic save - updates UI immediately, saves to cloud in background
     async function saveToCloud(showLoading = false) {
+        // If there's already a save pending, just mark for another save
         if (isSaving) {
             pendingSave = true;
             return;
@@ -194,6 +169,7 @@
 
         isSaving = true;
         
+        // Show loading only for important operations (closeMonth, deleteMonth)
         if (showLoading) {
             document.getElementById('loading').style.display = 'flex';
         }
@@ -204,7 +180,10 @@
                 mode: 'no-cors',
                 body: JSON.stringify({ action: "saveAll", orders: orders, archive: archive })
             });
+            
+            // Show success toast
             showToast();
+            
         } catch (e) {
             console.error("Save error:", e);
         } finally {
@@ -213,6 +192,7 @@
             }
             isSaving = false;
             
+            // If there's a pending save, do it now
             if (pendingSave) {
                 pendingSave = false;
                 saveToCloud(showLoading);
@@ -220,13 +200,14 @@
         }
     }
 
+    // Debounced save - groups multiple rapid changes
     function debouncedSave(showLoading = false) {
         if (saveTimeout) {
             clearTimeout(saveTimeout);
         }
         saveTimeout = setTimeout(() => {
             saveToCloud(showLoading);
-        }, 500);
+        }, 500); // Wait 500ms after last change before saving
     }
 
     async function loadFromCloud() {
@@ -234,9 +215,7 @@
         try {
             const response = await fetch(SCRIPT_URL);
             const data = await response.json();
-            orders = []; 
-            archive = [];
-            
+            orders = []; archive = [];
             data.forEach(row => {
                 const item = { 
                     id: row[0], 
@@ -244,20 +223,31 @@
                     type: row[3], 
                     qty: row[4], 
                     img: row[5], 
-                    date: row[6] ? row[6].split('T')[0] : row[6],
-                    status: row[8] || 'pending'
+                    date: row[6] ? formatLocalDate(row[6]) : row[6], // Fixed timezone issue
+                    status: row[8] 
                 };
-                if (row[9] === "current") orders.push(item); 
-                else archive.push(item);
+                if (row[9] === "current") orders.push(item); else archive.push(item);
             });
             render();
-        } catch (e) { 
-            console.log("Load Error", e);
-        }
+        } catch (e) { console.log("Load Error", e); }
         document.getElementById('loading').style.display = 'none';
     }
 
     function render(data = (showingArchive ? archive : orders)) {
+
+        const today = getTodayString();
+
+        // Sort: Today first, then newest to oldest
+        data = [...data].sort((a,b)=>{
+            if(a.date===today && b.date!==today) return -1;
+            if(a.date!==today && b.date===today) return 1;
+            return b.date.localeCompare(a.date);
+        });
+
+        if(showTodayOnly){
+            data = data.filter(o=>o.date===today);
+        }
+
         const tableBody = document.getElementById('tableBody');
         const tableFoot = document.getElementById('tableFoot');
         const gallery = document.getElementById('gallery');
@@ -267,21 +257,13 @@
         gallery.innerHTML = '';
         let totalCount = data.length;
 
-        // Sort data by date (newest first)
-        data.sort((a, b) => {
-            if (a.date && b.date) {
-                return b.date.localeCompare(a.date);
-            }
-            return 0;
-        });
-
         data.forEach(order => {
             const isShipped = order.status === 'shipped';
             const statusLabel = isShipped ? '已发货 | បានផ្ញើរ' : '生产中 | ផលិតកម្ម';
             const statusClass = isShipped ? 'bg-success' : 'bg-warning';
             
             tableBody.innerHTML += `
-                <tr>
+                <tr style="${order.status==='pending' ? 'background:#fff3cd;' : ''}">
                     <td><b>${escapeHtml(order.customer)}</b></td>
                     <td>${escapeHtml(order.type)}</td>
                     <td><b style="color:red">${escapeHtml(order.qty)}</b></td>
@@ -295,29 +277,24 @@
 
             gallery.innerHTML += `
                 <div class="image-item">
-                    <img src="${order.img || 'https://via.placeholder.com/300x300/1e3c72/ffffff?text=DHK'}" onclick="viewImage('${order.img || 'https://via.placeholder.com/300x300/1e3c72/ffffff?text=DHK'}', '${escapeHtml(order.customer)}', '${escapeHtml(order.qty)}')">
+                    <img src="${order.img}" onclick="viewImage('${order.img}', '${escapeHtml(order.customer)}', '${escapeHtml(order.qty)}')">
                     <div style="padding:10px;">
                         <h4>${escapeHtml(order.customer)}</h4>
-                        <div style="font-size:12px; color:#666; margin:5px 0;">
-                            <i class="fas fa-calendar"></i> ${formatDate(order.date)}
-                        </div>
-                        <span style="color:${isShipped ? 'green' : '#f39c12'}; font-weight:bold;">${isShipped ? '✅ 已发货' : '🏭 生产中'}</span>
-                        <button class="btn btn-edit" onclick="editItem(${order.id})"><i class="fas fa-camera"></i> កែរូប</button>
+                        <span style="color:${isShipped ? 'green' : '#f39c12'}; font-weight:bold;">${isShipped ? '✅ 已发货' : '生产中'}</span>
+                        <button class="btn btn-edit" onclick="editItem(${order.id})"><i class="fas fa-edit"></i> កែរូប</button>
                     </div>
                 </div>`;
         });
 
         tableFoot.innerHTML = `
             <tr class="total-row">
-                <td colspan="6" style="text-align:center;">
-                    <i class="fas fa-clipboard-list"></i> 
-                    សរុបកម្មង់ទាំងអស់: <span style="color:var(--primary); font-weight:bold;">${totalCount}</span> កម្មង់
-                </td>
+                <td colspan="6" style="text-align:center;">សរុបកម្មង់ទាំងអស់: <span style="color:red">${totalCount}</span> កម្មង់</td>
             </tr>`;
         
-        gallerySummary.innerHTML = `<i class="fas fa-images"></i> វិចិត្រសាល: ${totalCount} រូបភាព`;
+        renderSummary();
     }
 
+    // Escape HTML to prevent XSS
     function escapeHtml(text) {
         if (!text) return '';
         const div = document.createElement('div');
@@ -326,108 +303,109 @@
     }
 
     function formatDate(dateString) {
-        if (!dateString) return 'មិនមានកាលបរិច្ឆេទ';
+        if (!dateString) return '';
         return dateString.split('T')[0];
+    }
+
+    // 🔥 Fixed Cambodia timezone (UTC+7)
+    function formatLocalDate(dateString) {
+        if (!dateString) return '';
+
+        const d = new Date(dateString);
+        const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+        const cambodiaTime = new Date(utc + (7 * 60 * 60000));
+
+        const year = cambodiaTime.getFullYear();
+        const month = String(cambodiaTime.getMonth() + 1).padStart(2, '0');
+        const day = String(cambodiaTime.getDate()).padStart(2, '0');
+
+        return `${year}-${month}-${day}`;
     }
 
     document.getElementById('orderForm').onsubmit = function(e) {
         e.preventDefault();
-        
-        const dateInput = document.getElementById('orderDate');
-        if (!dateInput.value) {
-            alert('សូមជ្រើសរើសកាលបរិច្ឆេទ | 请选择日期');
-            return;
-        }
-
-        const fileInput = document.getElementById('productImage');
-        if (!fileInput.files[0]) {
-            alert('សូមជ្រើសរើសរូបភាព | 请选择图片');
-            return;
-        }
-        
         const reader = new FileReader();
         reader.onload = function(ev) {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const formattedDate = `${year}-${month}-${day}`;
+
+            // Add new order
             orders.push({ 
                 id: Date.now(), 
                 customer: document.getElementById('customerName').value, 
                 type: document.getElementById('productType').value, 
                 qty: document.getElementById('quantity').value, 
                 img: ev.target.result, 
-                date: dateInput.value, // Use selected date
+                date: formattedDate, 
                 status: 'pending' 
             });
             
+            // Render immediately (optimistic update)
             render();
+            
+            // Save to cloud in background
             debouncedSave();
+            
             e.target.reset();
-            setDefaultDate(); // Reset date to today after form reset
-            showToast();
         };
-        reader.readAsDataURL(fileInput.files[0]);
+        if (document.getElementById('productImage').files[0]) {
+            reader.readAsDataURL(document.getElementById('productImage').files[0]);
+        } else {
+            alert('សូមជ្រើសរើសរូបភាព | 请选择图片');
+        }
     };
 
     function toggleStatus(id) { 
-        const targetArray = showingArchive ? archive : orders;
-        const index = targetArray.findIndex(o => o.id === id);
-        if (index !== -1) {
-            targetArray[index].status = targetArray[index].status === 'pending' ? 'shipped' : 'pending';
-            render();
-            debouncedSave();
-        }
+        orders = orders.map(o => { 
+            if(o.id === id) o.status = (o.status === 'pending' ? 'shipped' : 'pending'); 
+            return o; 
+        }); 
+        // Render immediately
+        render();
+        // Debounced save
+        debouncedSave();
     }
 
     function deleteSingle(id) {
-        if(confirm("លុបកម្មង់នេះ? 删除此订单?") && prompt("Pass:") === PASS) {
-            if(showingArchive) {
-                archive = archive.filter(o => o.id !== id);
-            } else {
-                orders = orders.filter(o => o.id !== id);
-            }
+        if(confirm("លុប?") && prompt("Pass:") === PASS) {
+            if(showingArchive) archive = archive.filter(o => o.id !== id);
+            else orders = orders.filter(o => o.id !== id);
+            // Render immediately
             render();
+            // Debounced save
             debouncedSave();
-            showToast();
         }
     }
     
     function viewImage(src, name, qty) {
         document.getElementById('viewer').style.display = 'flex';
         document.getElementById('viewerImg').src = src;
-        document.getElementById('viewerInfo').innerHTML = `
-            <div><b>រោងចក្រ | 工厂:</b> ${escapeHtml(name)}</div>
-            <div><b>ចំនួន | 数量:</b> <span style="color: #ff4d4d;">${escapeHtml(qty)}</span></div>
-        `;
+        document.getElementById('viewerInfo').innerHTML = `<div><b>រោងចក្រ | 工厂:</b> ${escapeHtml(name)}</div><div><b>ចំនួន | 数量:</b> <span style="color: #ff4d4d;">${escapeHtml(qty)}</span></div>`;
     }
 
     function editItem(id) {
         const input = document.createElement('input'); 
         input.type = 'file'; 
         input.accept = 'image/*';
-        input.capture = 'environment';
-        input.style.display = 'none';
-        
+        input.setAttribute('capture', 'environment');
         input.onchange = e => {
-            if (e.target.files && e.target.files[0]) {
-                const reader = new FileReader();
-                reader.onload = ev => { 
-                    const index = orders.findIndex(o => o.id === id);
-                    if (index !== -1) {
-                        orders[index].img = ev.target.result;
-                        render();
-                        debouncedSave();
-                        showToast();
-                    }
-                };
-                reader.readAsDataURL(e.target.files[0]);
-            }
+            const reader = new FileReader();
+            reader.onload = ev => { 
+                orders = orders.map(o => { 
+                    if(o.id === id) o.img = ev.target.result; 
+                    return o; 
+                }); 
+                // Render immediately
+                render();
+                // Debounced save
+                debouncedSave();
+            };
+            reader.readAsDataURL(e.target.files[0]);
         };
-        
-        document.body.appendChild(input);
-        setTimeout(() => {
-            input.click();
-        }, 100);
-        setTimeout(() => {
-            document.body.removeChild(input);
-        }, 1000);
+        input.click();
     }
 
     function printInvoice(id) {
@@ -447,14 +425,13 @@
                 <h2>DE HENG KHAI (CAMBODIA) CO.,LTD.</h2>
                 <h3>德恒凯(柬埔寨)塑胶印刷制品有限公司</h3>
                 <hr>
-                <p align="left"><b>រោងចក្រ | 工厂:</b> ${escapeHtml(order.customer)}</p>
-                <p align="left"><b>ថ្ងៃទី | 日期:</b> ${formatDate(order.date)}</p>
+                <p align="left"><b>រោងចក្រ | 工厂:</b> ${escapeHtml(order.customer)} | <b>ថ្ងៃទី:</b> ${formatDate(order.date)}</p>
                 <table>
-                    <tr><th>ប្រភេទ | 类型</th><td>${escapeHtml(order.type)}</td></tr>
-                    <tr><th>បរិមាណ | 数量</th><td style="color:red; font-weight:bold;">${escapeHtml(order.qty)}</td></tr>
-                    <tr><th>ស្ថានភាព | 状态</th><td>${order.status === 'pending' ? '生产中' : '已发货'}</td></tr>
+                    <tr style="${order.status==='pending' ? 'background:#fff3cd;' : ''}"><th>ប្រភេទ | 类型</th><td>${escapeHtml(order.type)}</td></tr>
+                    <tr style="${order.status==='pending' ? 'background:#fff3cd;' : ''}"><th>បរិមាណ | 数量</th><td>${escapeHtml(order.qty)}</td></tr>
+                    <tr style="${order.status==='pending' ? 'background:#fff3cd;' : ''}"><th>ស្ថានភាព | 状态</th><td>${order.status === 'pending' ? '生产中' : '已发货'}</td></tr>
                 </table>
-                <img src="${order.img}" style="max-width:500px; border:1px solid #eee; border-radius:8px;">
+                <img src="${order.img}" style="max-width:500px; border:1px solid #eee;">
                 <script>
                     setTimeout(()=>{ window.print(); window.close(); }, 500);
                 <\/script>
@@ -463,45 +440,81 @@
     }
 
     function closeMonth() { 
-        if(confirm("បិទបញ្ជីខែនេះ? កម្មង់ទាំងអស់នឹងត្រូវផ្លាស់ទៅខែចាស់\n结帐？所有订单将移至存档") && prompt("Pass:") === PASS) { 
+        if(confirm("បិទបញ្ជីខែនេះ? 结帐?") && prompt("Pass:") === PASS) { 
             archive = [...archive, ...orders]; 
             orders = []; 
             render();
-            saveToCloud(true);
-            showToast();
+            saveToCloud(true); // Show loading for important operation
         } 
     }
     
     function deleteMonth() { 
-        if(confirm("លុបបញ្ជីខែនេះ? កម្មង់ទាំងអស់នឹងត្រូវលុប\n删除本月所有订单？") && prompt("Pass:") === PASS) { 
+        if(confirm("លុបបញ្ជីខែនេះ? 删除?") && prompt("Pass:") === PASS) { 
             orders = []; 
             render();
-            saveToCloud(true);
-            showToast();
+            saveToCloud(true); // Show loading for important operation
         } 
     }
     
     function filterData() { 
         const q = document.getElementById('searchInput').value.toLowerCase(); 
-        if (showingArchive) {
-            render(archive.filter(o => o.customer.toLowerCase().includes(q)));
-        } else {
-            render(orders.filter(o => o.customer.toLowerCase().includes(q)));
-        }
+        render(orders.filter(o => o.customer.toLowerCase().includes(q))); 
     }
     
     function toggleArchive() { 
         showingArchive = !showingArchive; 
-        render();
-        const btnText = document.getElementById('archiveBtnText');
-        if (btnText) {
-            btnText.innerHTML = showingArchive ? 'បច្ចុប្បន្ន | 当前' : 'ខែចាស់ | 存档';
-        }
+        render(); 
     }
 
-    window.onload = () => { 
+    
+// ===== ✅ NEW FEATURES: Today First + Summary + Filter + Highlight =====
+
+let showTodayOnly = false;
+
+function getTodayString(){
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth()+1).padStart(2,'0');
+    const d = String(now.getDate()).padStart(2,'0');
+    return `${y}-${m}-${d}`;
+}
+
+function getYesterdayString(){
+    const now = new Date();
+    now.setDate(now.getDate()-1);
+    const y = now.getFullYear();
+    const m = String(now.getMonth()+1).padStart(2,'0');
+    const d = String(now.getDate()).padStart(2,'0');
+    return `${y}-${m}-${d}`;
+}
+
+function renderSummary(){
+    const today = getTodayString();
+    const yesterday = getYesterdayString();
+
+    const todayCount = orders.filter(o=>o.date===today).length;
+    const yesterdayCount = orders.filter(o=>o.date===yesterday).length;
+    const monthCount = orders.length;
+
+    const summaryDiv = document.getElementById("gallerySummary");
+    summaryDiv.innerHTML = `
+    📊 Today: <b style="color:green">${todayCount}</b> |
+    📊 Yesterday: <b style="color:blue">${yesterdayCount}</b> |
+    📊 This Month: <b style="color:red">${monthCount}</b>
+    <br><br>
+    <button onclick="toggleTodayFilter()" style="padding:6px 12px;border:none;border-radius:6px;background:#1e3c72;color:white;cursor:pointer;">
+    ${showTodayOnly ? "Show All" : "Show Today Only"}
+    </button>
+    `;
+}
+
+function toggleTodayFilter(){
+    showTodayOnly = !showTodayOnly;
+    render();
+}
+
+window.onload = () => { 
         loadFromCloud(); 
-        setDefaultDate();
         const now = new Date();
         const year = now.getFullYear();
         const month = String(now.getMonth() + 1).padStart(2, '0');

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DHK - Cloud Order System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --primary: #1e3c72; --secondary: #2a5298; --success: #28a745; --danger: #dc3545; --warning: #f39c12; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', 'Khmer OS Battambang', sans-serif; }
+        body { background-color: #f0f2f5; padding: 15px; }
+        .container { max-width: 1300px; margin: 0 auto; }
+        .header { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; padding: 25px; border-radius: 12px; margin-bottom: 20px; text-align: center; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .grid-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; align-items: flex-end; }
+        .form-control { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; overflow-x: auto; display: block; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; white-space: nowrap; }
+        th { background: #f8f9fa; color: var(--primary); }
+        .total-row { background: #f1f8ff; font-weight: bold; }
+
+        .btn-status { padding: 8px 12px; border-radius: 6px; color: white; border: none; cursor: pointer; font-weight: bold; min-width: 130px; }
+        .bg-warning { background: #f39c12; }
+        .bg-success { background: #28a745 !important; }
+        
+        .btn { padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: white; }
+        .btn-info { background: #17a2b8; }
+        .btn-pink { background: #d93d4a; } 
+        .btn-red { background: #c82333; }
+        .btn-edit { background: #f39c12; margin-top: 5px; width: 100%; justify-content: center; }
+        
+        .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; margin-top: 15px; }
+        .image-item { background: white; border-radius: 10px; overflow: hidden; border: 2px solid #eee; padding: 10px; text-align: center; }
+        .image-item img { width: 100%; height: 140px; object-fit: cover; border-radius: 5px; cursor: pointer; }
+        
+        .image-viewer { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:3000; justify-content:center; align-items:center; flex-direction: column; }
+        .image-viewer img { max-width: 90%; max-height: 70%; border: 3px solid white; border-radius: 8px; }
+        .viewer-info { color: white; margin-top: 15px; text-align: center; font-size: 20px; }
+        
+        .loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; justify-content: center; align-items: center; font-weight: bold; flex-direction: column; }
+    </style>
+</head>
+<body>
+
+<div id="loading" class="loading-overlay">
+    <i class="fas fa-spinner fa-spin fa-3x" style="color:var(--primary); margin-bottom:10px;"></i>
+    <div>កំពុងរក្សាទុកទៅ Cloud... | 正在同步...</div>
+</div>
+
+<div class="container">
+    <div class="header">
+        <h1>DE HENG KHAI (CAMBODIA) CO.,LTD.</h1>
+        <h3>德恒凯(柬埔寨)塑胶印刷制品有限公司</h3>
+        <div id="date-display" style="margin-top: 10px;"></div>
+    </div>
+
+    <div class="card">
+        <h3><i class="fas fa-plus-circle"></i> បញ្ចូលកម្មង់ថ្មី | 新订单</h3>
+        <form id="orderForm" class="grid-form">
+            <div><label>រោងចក្រ | 工厂</label><input type="text" id="customerName" class="form-control" required></div>
+            <div><label>ប្រភេទ | 类型</label>
+                <select id="productType" class="form-control">
+                    <option value="ស្ទិកឃ័រ (贴纸)">ស្ទិកឃ័រ | 贴纸</option>
+                    <option value="ក្រណាត់ទន់ (布标)">ក្រណាត់ទន់ | 布标</option>
+                    <option value="សៀវភៅ (本)">សៀវភៅ | 本</option>
+                    <option value="សៀវភៅណែនាំ (说明书)">សៀវភៅណែនាំ | 说明书</option>
+                </select>
+            </div>
+            <div><label>បរិមាណ | 数量</label><input type="text" id="quantity" class="form-control" required placeholder="ឧ៖ 100pcs"></div>
+            <div><label>រូបភាព | 图片</label><input type="file" id="productImage" class="form-control" accept="image/*" required></div>
+            <button type="submit" class="btn" style="background:var(--primary);"><i class="fas fa-save"></i> រក្សាទុក | 保存</button>
+        </form>
+    </div>
+
+    <div class="card" style="background: #eef2f7;">
+        <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 15px;">
+            <h3><i class="fas fa-search"></i> ស្វែងរក | 搜索</h3>
+            <input type="text" id="searchInput" class="form-control" style="flex:1" placeholder="ស្វែងរក..." onkeyup="filterData()">
+            <button class="btn" style="background:#6c757d;" onclick="toggleArchive()"><i class="fas fa-history"></i> ខែចាស់ | 存档</button>
+        </div>
+        <div id="gallerySummary" style="font-weight: bold; color: var(--primary); margin-bottom: 10px;"></div>
+        <div id="gallery" class="gallery"></div>
+    </div>
+
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+            <h3><i class="fas fa-list"></i> បញ្ជីកម្មង់ | 订单列表</h3>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn btn-info" onclick="alert('មុខងាររបាយការណ៍នឹងមកដល់ឆាប់ៗ...')"><i class="fas fa-file-alt"></i> របាយការណ៍ខែ | 月报</button>
+                <button class="btn btn-pink" onclick="closeMonth()"><i class="fas fa-calendar-check"></i> បិទបញ្ជីខែនេះ | 结帐</button>
+                <button class="btn btn-red" onclick="deleteMonth()"><i class="fas fa-trash"></i> លុបបញ្ជីខែនេះ | 删除</button>
+            </div>
+        </div>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>រោងចក្រ | 工厂</th>
+                        <th>ប្រភេទ | 类型</th>
+                        <th>បរិមាណ | 数量</th>
+                        <th>ថ្ងៃខែ | 日期</th>
+                        <th>ស្ថានភាព | 状态</th>
+                        <th>សកម្មភាព | 操作</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+                <tfoot id="tableFoot"></tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="viewer" class="image-viewer" onclick="this.style.display='none'"><img id="viewerImg" src=""><div id="viewerInfo" class="viewer-info"></div></div>
+
+<script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz-TozK_2ZHANU2To8TWgHGMNnixm1__A5q446Nl06WFYBqQ8CfVJ3aeaPxd2J6ssF_vw/exec"; 
+    
+    let orders = []; let archive = []; let showingArchive = false; const PASS = "1234";
+
+    async function loadFromCloud() {
+        document.getElementById('loading').style.display = 'flex';
+        try {
+            const response = await fetch(SCRIPT_URL);
+            const data = await response.json();
+            orders = []; archive = [];
+            data.forEach(row => {
+                const item = { id: row[0], customer: row[2], type: row[3], qty: row[4], img: row[5], date: row[6], status: row[8] };
+                if (row[9] === "current") orders.push(item); else archive.push(item);
+            });
+            render();
+        } catch (e) { console.log("Load Error"); }
+        document.getElementById('loading').style.display = 'none';
+    }
+
+    async function saveToCloud() {
+        document.getElementById('loading').style.display = 'flex';
+        try {
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify({ action: "saveAll", orders: orders, archive: archive })
+            });
+            setTimeout(() => { document.getElementById('loading').style.display = 'none'; render(); }, 2000);
+        } catch (e) { document.getElementById('loading').style.display = 'none'; }
+    }
+
+    function render(data = (showingArchive ? archive : orders)) {
+        const tableBody = document.getElementById('tableBody');
+        const tableFoot = document.getElementById('tableFoot');
+        const gallery = document.getElementById('gallery');
+        const gallerySummary = document.getElementById('gallerySummary');
+        
+        tableBody.innerHTML = ''; gallery.innerHTML = '';
+        let totalCount = data.length;
+
+        data.forEach(order => {
+            const isShipped = order.status === 'shipped';
+            const statusLabel = isShipped ? '已发货 | បានផ្ញើរ' : '生产中 | ផលិតកម្ម';
+            const statusClass = isShipped ? 'bg-success' : 'bg-warning';
+            
+            tableBody.innerHTML += `
+                <tr>
+                    <td><b>${order.customer}</b></td>
+                    <td>${order.type}</td>
+                    <td><b style="color:red">${order.qty}</b></td>
+                    <td>${order.date}</td>
+                    <td><button onclick="toggleStatus(${order.id})" class="btn-status ${statusClass}">${statusLabel}</button></td>
+                    <td>
+                        <button onclick="printInvoice(${order.id})" class="btn" style="background:#2ecc71; padding:5px 10px;"><i class="fas fa-print"></i></button>
+                        <button onclick="deleteSingle(${order.id})" class="btn btn-red" style="padding:5px 10px;"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`;
+
+            gallery.innerHTML += `
+                <div class="image-item">
+                    <img src="${order.img}" onclick="viewImage('${order.img}', '${order.customer}', '${order.qty}')">
+                    <div style="padding:10px;">
+                        <h4>${order.customer}</h4>
+                        <span style="color:${isShipped ? 'green' : '#f39c12'}; font-weight:bold;">${isShipped ? '✅ 已发货' : '生产中'}</span>
+                        <button class="btn btn-edit" onclick="editItem(${order.id})"><i class="fas fa-edit"></i> កែរូប</button>
+                    </div>
+                </div>`;
+        });
+
+        tableFoot.innerHTML = `
+            <tr class="total-row">
+                <td colspan="6" style="text-align:center;">សរុបកម្មង់ទាំងអស់: <span style="color:red">${totalCount}</span> កម្មង់</td>
+            </tr>`;
+        
+        gallerySummary.innerHTML = `សរុប: ${totalCount} កម្មង់`;
+    }
+
+    document.getElementById('orderForm').onsubmit = function(e) {
+        e.preventDefault();
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            // កែសម្រួលទម្រង់ថ្ងៃខែទៅជា YYYY-MM-DD
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const formattedDate = `${year}-${month}-${day}`;
+
+            orders.push({ 
+                id: Date.now(), 
+                customer: document.getElementById('customerName').value, 
+                type: document.getElementById('productType').value, 
+                qty: document.getElementById('quantity').value, 
+                img: ev.target.result, 
+                date: formattedDate, 
+                status: 'pending' 
+            });
+            saveToCloud(); e.target.reset();
+        };
+        reader.readAsDataURL(document.getElementById('productImage').files[0]);
+    };
+
+    function toggleStatus(id) { 
+        orders = orders.map(o => { if(o.id === id) o.status = (o.status === 'pending' ? 'shipped' : 'pending'); return o; }); 
+        saveToCloud(); 
+    }
+
+    function deleteSingle(id) {
+        if(confirm("លុប?") && prompt("Pass:") === PASS) {
+            if(showingArchive) archive = archive.filter(o => o.id !== id);
+            else orders = orders.filter(o => o.id !== id);
+            saveToCloud();
+        }
+    }
+    
+    function viewImage(src, name, qty) {
+        document.getElementById('viewer').style.display = 'flex';
+        document.getElementById('viewerImg').src = src;
+        document.getElementById('viewerInfo').innerHTML = `<div><b>រោងចក្រ | 工厂:</b> ${name}</div><div><b>ចំនួន | 数量:</b> <span style="color: #ff4d4d;">${qty}</span></div>`;
+    }
+
+    function editItem(id) {
+        const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*';
+        input.onchange = e => {
+            const reader = new FileReader();
+            reader.onload = ev => { orders = orders.map(o => { if(o.id === id) o.img = ev.target.result; return o; }); saveToCloud(); };
+            reader.readAsDataURL(e.target.files[0]);
+        };
+        input.click();
+    }
+
+    function printInvoice(id) {
+        const order = orders.find(o => o.id === id) || archive.find(o => o.id === id);
+        const win = window.open('', '_blank');
+        win.document.write(`<html><head><style>body{font-family:'Khmer OS Battambang', 'Microsoft YaHei';padding:30px;text-align:center;} table{width:100%;border-collapse:collapse;margin:20px 0;} th,td{border:1px solid #ddd;padding:12px;text-align:left;}</style></head><body><h2>DE HENG KHAI (CAMBODIA) CO.,LTD.</h2><h3>德恒凯(柬埔寨)塑胶印刷制品有限公司</h3><hr><p align="left"><b>រោងចក្រ | 工厂:</b> ${order.customer} | <b>ថ្ងៃទី:</b> ${order.date}</p><table><tr><th>ប្រភេទ | 类型</th><td>${order.type}</td></tr><tr><th>បរិមាណ | 数量</th><td>${order.qty}</td></tr><tr><th>ស្ថានភាព | 状态</th><td>${order.status === 'pending' ? '生产中' : '已发货'}</td></tr></table><img src="${order.img}" style="max-width:500px; border:1px solid #eee;"><script>setTimeout(()=>{window.print();window.close();},500);<\/script></body></html>`);
+    }
+
+    function closeMonth() { if(confirm("结帐?") && prompt("Pass:")===PASS) { archive = [...archive, ...orders]; orders = []; saveToCloud(); } }
+    function deleteMonth() { if(confirm("删除?") && prompt("Pass:")===PASS) { orders = []; saveToCloud(); } }
+    function filterData() { const q = document.getElementById('searchInput').value.toLowerCase(); render(orders.filter(o => o.customer.toLowerCase().includes(q))); }
+    function toggleArchive() { showingArchive = !showingArchive; render(); }
+
+    window.onload = () => { 
+        loadFromCloud(); 
+        const now = new Date();
+        document.getElementById('date-display').innerHTML = "ថ្ងៃនេះ | 今天: " + now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,'0') + "-" + String(now.getDate()).padStart(2,'0'); 
+    };
+</script>
+</body>
+</html>

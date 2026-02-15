@@ -28,11 +28,12 @@
         .btn-info { background: #17a2b8; }
         .btn-pink { background: #d93d4a; } 
         .btn-red { background: #c82333; }
-        .btn-edit { background: #f39c12; margin-top: 5px; width: 100%; justify-content: center; }
         
-        .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; margin-top: 15px; }
-        .image-item { background: white; border-radius: 10px; overflow: hidden; border: 2px solid #eee; padding: 10px; text-align: center; }
+        .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
+        .image-item { background: white; border-radius: 10px; overflow: hidden; border: 2px solid #eee; padding: 10px; text-align: center; transition: all 0.3s ease; }
+        .image-item:hover { transform: translateY(-5px); box-shadow: 0 8px 15px rgba(0,0,0,0.1); }
         .image-item img { width: 100%; height: 140px; object-fit: cover; border-radius: 5px; cursor: pointer; }
+        .image-item.shipped { border: 2px solid #28a745; background: #f0fff0; }
         
         .image-viewer { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:3000; justify-content:center; align-items:center; flex-direction: column; }
         .image-viewer img { max-width: 90%; max-height: 70%; border: 3px solid white; border-radius: 8px; }
@@ -43,9 +44,116 @@
         .camera-btn { background: var(--secondary); color: white; padding: 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
         .camera-btn:hover { background: var(--primary); }
         
+        /* Search bar styling */
+        .search-container {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            width: 100%;
+        }
+        .date-search {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            background: white;
+            padding: 5px 10px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+        }
+        .date-search input[type="date"] {
+            border: none;
+            padding: 8px;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+        .date-search button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .date-search button:hover {
+            background: var(--secondary);
+        }
+        .clear-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .clear-btn:hover {
+            background: #5a6268;
+        }
+        
+        /* Date header styling */
+        .date-header {
+            grid-column: 1 / -1;
+            margin: 20px 0 10px 0;
+            padding: 15px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .date-header .date-title {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        .date-header .date-title i {
+            margin-right: 8px;
+        }
+        .date-header .stats {
+            display: flex;
+            gap: 10px;
+        }
+        .date-header .stat-badge {
+            padding: 5px 15px;
+            border-radius: 25px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+        .date-header .stat-badge.total {
+            background: rgba(255,255,255,0.2);
+        }
+        .date-header .stat-badge.shipped {
+            background: #28a745;
+        }
+        .date-header .stat-badge.pending {
+            background: #f39c12;
+        }
+        
         /* Fast save indicator */
         .save-toast { position: fixed; bottom: 20px; right: 20px; background: var(--success); color: white; padding: 10px 20px; border-radius: 30px; display: none; align-items: center; gap: 8px; z-index: 10000; animation: slideIn 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        
+        .search-active { background: #e8f4fd; border: 2px solid var(--primary); }
+        
+        .shipped-label {
+            margin-top: 5px;
+            color: #28a745;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        .item-details {
+            margin: 5px 0;
+            font-size: 13px;
+            text-align: left;
+            padding: 5px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .item-details span {
+            color: #666;
+        }
     </style>
 </head>
 <body>
@@ -95,8 +203,22 @@
     <div class="card" style="background: #eef2f7;">
         <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 15px;">
             <h3><i class="fas fa-search"></i> ស្វែងរក | 搜索</h3>
-            <input type="text" id="searchInput" class="form-control" style="flex:1" placeholder="ស្វែងរក..." onkeyup="filterData()">
-            <button class="btn" style="background:#6c757d;" onclick="toggleArchive()"><i class="fas fa-history"></i> ខែចាស់ | 存档</button>
+            <div class="search-container">
+                <input type="text" id="searchInput" class="form-control" style="flex:2" placeholder="ស្វែងរកតាមឈ្មោះរោងចក្រ... | 按工厂名称搜索..." onkeyup="filterData()">
+                
+                <div class="date-search">
+                    <input type="date" id="dateSearchInput" onchange="searchByDate()">
+                    <button onclick="searchByDate()"><i class="fas fa-calendar-day"></i> ថ្ងៃ | 日期</button>
+                </div>
+                
+                <button class="btn" style="background:#6c757d;" onclick="clearDateSearch()">
+                    <i class="fas fa-times"></i> សម្អាត | 清除
+                </button>
+                
+                <button class="btn" style="background:#6c757d;" onclick="toggleArchive()">
+                    <i class="fas fa-history"></i> ខែចាស់ | 存档
+                </button>
+            </div>
         </div>
         <div id="gallerySummary" style="font-weight: bold; color: var(--primary); margin-bottom: 10px;"></div>
         <div id="gallery" class="gallery"></div>
@@ -114,7 +236,7 @@
         <div style="overflow-x: auto;">
             <table>
                 <thead>
-                    <tr style="${order.status==='pending' ? 'background:#fff3cd;' : ''}">
+                    <tr>
                         <th>រោងចក្រ | 工厂</th>
                         <th>ប្រភេទ | 类型</th>
                         <th>បរិមាណ | 数量</th>
@@ -138,6 +260,9 @@
     let orders = []; 
     let archive = []; 
     let showingArchive = false; 
+    let showTodayOnly = false;
+    let filteredData = null;
+    let activeDateFilter = null;
     const PASS = "1234";
     
     // Debounce timer for save
@@ -161,7 +286,6 @@
 
     // Optimistic save - updates UI immediately, saves to cloud in background
     async function saveToCloud(showLoading = false) {
-        // If there's already a save pending, just mark for another save
         if (isSaving) {
             pendingSave = true;
             return;
@@ -169,7 +293,6 @@
 
         isSaving = true;
         
-        // Show loading only for important operations (closeMonth, deleteMonth)
         if (showLoading) {
             document.getElementById('loading').style.display = 'flex';
         }
@@ -181,7 +304,6 @@
                 body: JSON.stringify({ action: "saveAll", orders: orders, archive: archive })
             });
             
-            // Show success toast
             showToast();
             
         } catch (e) {
@@ -192,7 +314,6 @@
             }
             isSaving = false;
             
-            // If there's a pending save, do it now
             if (pendingSave) {
                 pendingSave = false;
                 saveToCloud(showLoading);
@@ -200,14 +321,13 @@
         }
     }
 
-    // Debounced save - groups multiple rapid changes
     function debouncedSave(showLoading = false) {
         if (saveTimeout) {
             clearTimeout(saveTimeout);
         }
         saveTimeout = setTimeout(() => {
             saveToCloud(showLoading);
-        }, 500); // Wait 500ms after last change before saving
+        }, 500);
     }
 
     async function loadFromCloud() {
@@ -223,7 +343,7 @@
                     type: row[3], 
                     qty: row[4], 
                     img: row[5], 
-                    date: row[6] ? formatLocalDate(row[6]) : row[6], // Fixed timezone issue
+                    date: row[6] ? formatLocalDate(row[6]) : row[6],
                     status: row[8] 
                 };
                 if (row[9] === "current") orders.push(item); else archive.push(item);
@@ -233,19 +353,41 @@
         document.getElementById('loading').style.display = 'none';
     }
 
-    function render(data = (showingArchive ? archive : orders)) {
+    function getTodayString(){
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth()+1).padStart(2,'0');
+        const d = String(now.getDate()).padStart(2,'0');
+        return `${y}-${m}-${d}`;
+    }
+
+    function getYesterdayString(){
+        const now = new Date();
+        now.setDate(now.getDate()-1);
+        const y = now.getFullYear();
+        const m = String(now.getMonth()+1).padStart(2,'0');
+        const d = String(now.getDate()).padStart(2,'0');
+        return `${y}-${m}-${d}`;
+    }
+
+    function render() {
+        let sourceData;
+        if (filteredData !== null) {
+            sourceData = filteredData;
+        } else {
+            sourceData = showingArchive ? archive : orders;
+        }
 
         const today = getTodayString();
 
-        // Sort: Today first, then newest to oldest
-        data = [...data].sort((a,b)=>{
+        sourceData = [...sourceData].sort((a,b)=>{
             if(a.date===today && b.date!==today) return -1;
             if(a.date!==today && b.date===today) return 1;
             return b.date.localeCompare(a.date);
         });
 
-        if(showTodayOnly){
-            data = data.filter(o=>o.date===today);
+        if(showTodayOnly && filteredData === null){
+            sourceData = sourceData.filter(o=>o.date===today);
         }
 
         const tableBody = document.getElementById('tableBody');
@@ -255,15 +397,39 @@
         
         tableBody.innerHTML = ''; 
         gallery.innerHTML = '';
-        let totalCount = data.length;
+        let totalCount = sourceData.length;
 
-        data.forEach(order => {
+        // Group orders by date
+        const ordersByDate = {};
+        sourceData.forEach(order => {
+            if (!ordersByDate[order.date]) {
+                ordersByDate[order.date] = [];
+            }
+            ordersByDate[order.date].push(order);
+        });
+
+        // Sort dates in descending order (newest first)
+        const sortedDates = Object.keys(ordersByDate).sort((a, b) => b.localeCompare(a));
+
+        // Show filter info if active
+        let filterInfo = '';
+        if (activeDateFilter) {
+            filterInfo = `<div style="background: #e3f2fd; padding: 5px 10px; border-radius: 4px; margin-bottom: 10px;">
+                <i class="fas fa-filter"></i> កំពុងស្វែងរកតាមថ្ងៃ: ${activeDateFilter} | 正在按日期搜索: ${activeDateFilter}
+                <button onclick="clearDateSearch()" style="margin-left: 10px; background: none; border: none; color: var(--primary); cursor: pointer;">
+                    <i class="fas fa-times"></i> សម្អាត | 清除
+                </button>
+            </div>`;
+        }
+
+        // Create table rows
+        sourceData.forEach(order => {
             const isShipped = order.status === 'shipped';
             const statusLabel = isShipped ? '已发货 | បានផ្ញើរ' : '生产中 | ផលិតកម្ម';
             const statusClass = isShipped ? 'bg-success' : 'bg-warning';
             
             tableBody.innerHTML += `
-                <tr style="${order.status==='pending' ? 'background:#fff3cd;' : ''}">
+                <tr>
                     <td><b>${escapeHtml(order.customer)}</b></td>
                     <td>${escapeHtml(order.type)}</td>
                     <td><b style="color:red">${escapeHtml(order.qty)}</b></td>
@@ -274,27 +440,76 @@
                         <button onclick="deleteSingle(${order.id})" class="btn btn-red" style="padding:5px 10px;"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>`;
+        });
 
+        // Create gallery grouped by date
+        sortedDates.forEach(date => {
+            const ordersForDate = ordersByDate[date];
+            const shippedOrders = ordersForDate.filter(o => o.status === 'shipped');
+            const pendingOrders = ordersForDate.filter(o => o.status === 'pending');
+            
+            // Date header with summary
             gallery.innerHTML += `
-                <div class="image-item">
-                    <img src="${order.img}" onclick="viewImage('${order.img}', '${escapeHtml(order.customer)}', '${escapeHtml(order.qty)}')">
-                    <div style="padding:10px;">
-                        <h4>${escapeHtml(order.customer)}</h4>
-                        <span style="color:${isShipped ? 'green' : '#f39c12'}; font-weight:bold;">${isShipped ? '✅ 已发货' : '生产中'}</span>
-                        <button class="btn btn-edit" onclick="editItem(${order.id})"><i class="fas fa-edit"></i> កែរូប</button>
+                <div class="date-header">
+                    <div class="date-title">
+                        <i class="far fa-calendar-alt"></i> ${date}
+                        ${date === today ? ' <span style="background: #ffc107; color: #000; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; margin-left: 10px;">ថ្ងៃនេះ | 今天</span>' : ''}
                     </div>
-                </div>`;
+                    <div class="stats">
+                        <span class="stat-badge total">
+                            <i class="fas fa-list"></i> សរុប: ${ordersForDate.length}
+                        </span>
+                        <span class="stat-badge shipped">
+                            <i class="fas fa-check-circle"></i> បានផ្ញើរ: ${shippedOrders.length}
+                        </span>
+                        <span class="stat-badge pending">
+                            <i class="fas fa-spinner"></i> ផលិតកម្ម: ${pendingOrders.length}
+                        </span>
+                    </div>
+                </div>
+            `;
+
+            // Show shipped orders first (with green background), then pending orders
+            const sortedOrdersForDisplay = [...shippedOrders, ...pendingOrders];
+            
+            sortedOrdersForDisplay.forEach(order => {
+                const isShipped = order.status === 'shipped';
+                
+                gallery.innerHTML += `
+                    <div class="image-item ${isShipped ? 'shipped' : ''}">
+                        <img src="${order.img}" onclick="viewImage('${order.img}', '${escapeHtml(order.customer)}', '${escapeHtml(order.qty)}', '${escapeHtml(order.type)}', '${order.date}')">
+                        <div style="padding:10px;">
+                            <h4>${escapeHtml(order.customer)}</h4>
+                            
+                            <div class="item-details">
+                                <div><span>ប្រភេទ | 类型:</span> ${escapeHtml(order.type)}</div>
+                                <div><span>បរិមាណ | 数量:</span> <b style="color:red">${escapeHtml(order.qty)}</b></div>
+                                <div><span><i class="far fa-calendar-alt"></i> ថ្ងៃខែ:</span> ${order.date}</div>
+                            </div>
+                            
+                            <div style="margin:10px 0;">
+                                <button onclick="toggleStatus(${order.id})" class="btn-status ${isShipped ? 'bg-success' : 'bg-warning'}" style="width:100%;">
+                                    ${isShipped ? '✅ បានផ្ញើរ | 已发货' : '🔄 ផលិតកម្ម | 生产中'}
+                                </button>
+                            </div>
+                            
+                            ${isShipped ? '<div class="shipped-label"><i class="fas fa-check-circle"></i> បានផ្ញើររួចរាល់ | 已发货完成</div>' : ''}
+                        </div>
+                    </div>`;
+            });
         });
 
         tableFoot.innerHTML = `
             <tr class="total-row">
-                <td colspan="6" style="text-align:center;">សរុបកម្មង់ទាំងអស់: <span style="color:red">${totalCount}</span> កម្មង់</td>
+                <td colspan="6" style="text-align:center;">
+                    ${filterInfo ? filterInfo + '<br>' : ''}
+                    សរុបកម្មង់ទាំងអស់: <span style="color:red">${totalCount}</span> កម្មង់
+                </td>
             </tr>`;
         
         renderSummary();
     }
 
-    // Escape HTML to prevent XSS
     function escapeHtml(text) {
         if (!text) return '';
         const div = document.createElement('div');
@@ -307,7 +522,6 @@
         return dateString.split('T')[0];
     }
 
-    // 🔥 Fixed Cambodia timezone (UTC+7)
     function formatLocalDate(dateString) {
         if (!dateString) return '';
 
@@ -332,7 +546,6 @@
             const day = String(now.getDate()).padStart(2, '0');
             const formattedDate = `${year}-${month}-${day}`;
 
-            // Add new order
             orders.push({ 
                 id: Date.now(), 
                 customer: document.getElementById('customerName').value, 
@@ -343,10 +556,8 @@
                 status: 'pending' 
             });
             
-            // Render immediately (optimistic update)
+            clearDateSearch();
             render();
-            
-            // Save to cloud in background
             debouncedSave();
             
             e.target.reset();
@@ -359,13 +570,20 @@
     };
 
     function toggleStatus(id) { 
-        orders = orders.map(o => { 
-            if(o.id === id) o.status = (o.status === 'pending' ? 'shipped' : 'pending'); 
-            return o; 
-        }); 
-        // Render immediately
+        const targetArray = showingArchive ? archive : orders;
+        const orderIndex = targetArray.findIndex(o => o.id === id);
+        if (orderIndex !== -1) {
+            targetArray[orderIndex].status = targetArray[orderIndex].status === 'pending' ? 'shipped' : 'pending';
+        }
+        
+        if (filteredData !== null) {
+            filteredData = filteredData.map(o => {
+                if(o.id === id) o.status = o.status === 'pending' ? 'shipped' : 'pending';
+                return o;
+            });
+        }
+        
         render();
-        // Debounced save
         debouncedSave();
     }
 
@@ -373,39 +591,25 @@
         if(confirm("លុប?") && prompt("Pass:") === PASS) {
             if(showingArchive) archive = archive.filter(o => o.id !== id);
             else orders = orders.filter(o => o.id !== id);
-            // Render immediately
+            
+            if (filteredData !== null) {
+                filteredData = filteredData.filter(o => o.id !== id);
+            }
+            
             render();
-            // Debounced save
             debouncedSave();
         }
     }
     
-    function viewImage(src, name, qty) {
+    function viewImage(src, name, qty, type, date) {
         document.getElementById('viewer').style.display = 'flex';
         document.getElementById('viewerImg').src = src;
-        document.getElementById('viewerInfo').innerHTML = `<div><b>រោងចក្រ | 工厂:</b> ${escapeHtml(name)}</div><div><b>ចំនួន | 数量:</b> <span style="color: #ff4d4d;">${escapeHtml(qty)}</span></div>`;
-    }
-
-    function editItem(id) {
-        const input = document.createElement('input'); 
-        input.type = 'file'; 
-        input.accept = 'image/*';
-        input.setAttribute('capture', 'environment');
-        input.onchange = e => {
-            const reader = new FileReader();
-            reader.onload = ev => { 
-                orders = orders.map(o => { 
-                    if(o.id === id) o.img = ev.target.result; 
-                    return o; 
-                }); 
-                // Render immediately
-                render();
-                // Debounced save
-                debouncedSave();
-            };
-            reader.readAsDataURL(e.target.files[0]);
-        };
-        input.click();
+        document.getElementById('viewerInfo').innerHTML = `
+            <div><b>រោងចក្រ | 工厂:</b> ${escapeHtml(name)}</div>
+            <div><b>ប្រភេទ | 类型:</b> ${escapeHtml(type)}</div>
+            <div><b>ចំនួន | 数量:</b> <span style="color: #ff4d4d;">${escapeHtml(qty)}</span></div>
+            <div><b>ថ្ងៃខែ | 日期:</b> ${date}</div>
+        `;
     }
 
     function printInvoice(id) {
@@ -427,9 +631,9 @@
                 <hr>
                 <p align="left"><b>រោងចក្រ | 工厂:</b> ${escapeHtml(order.customer)} | <b>ថ្ងៃទី:</b> ${formatDate(order.date)}</p>
                 <table>
-                    <tr style="${order.status==='pending' ? 'background:#fff3cd;' : ''}"><th>ប្រភេទ | 类型</th><td>${escapeHtml(order.type)}</td></tr>
-                    <tr style="${order.status==='pending' ? 'background:#fff3cd;' : ''}"><th>បរិមាណ | 数量</th><td>${escapeHtml(order.qty)}</td></tr>
-                    <tr style="${order.status==='pending' ? 'background:#fff3cd;' : ''}"><th>ស្ថានភាព | 状态</th><td>${order.status === 'pending' ? '生产中' : '已发货'}</td></tr>
+                    <tr><th>ប្រភេទ | 类型</th><td>${escapeHtml(order.type)}</td></tr>
+                    <tr><th>បរិមាណ | 数量</th><td>${escapeHtml(order.qty)}</td></tr>
+                    <tr><th>ស្ថានភាព | 状态</th><td>${order.status === 'pending' ? '生产中 | ផលិតកម្ម' : '已发货 | បានផ្ញើរ'}</td></tr>
                 </table>
                 <img src="${order.img}" style="max-width:500px; border:1px solid #eee;">
                 <script>
@@ -443,83 +647,136 @@
         if(confirm("បិទបញ្ជីខែនេះ? 结帐?") && prompt("Pass:") === PASS) { 
             archive = [...archive, ...orders]; 
             orders = []; 
+            clearDateSearch();
             render();
-            saveToCloud(true); // Show loading for important operation
+            saveToCloud(true);
         } 
     }
     
     function deleteMonth() { 
         if(confirm("លុបបញ្ជីខែនេះ? 删除?") && prompt("Pass:") === PASS) { 
             orders = []; 
+            clearDateSearch();
             render();
-            saveToCloud(true); // Show loading for important operation
+            saveToCloud(true);
         } 
     }
     
     function filterData() { 
-        const q = document.getElementById('searchInput').value.toLowerCase(); 
-        render(orders.filter(o => o.customer.toLowerCase().includes(q))); 
+        const q = document.getElementById('searchInput').value.toLowerCase().trim();
+        
+        if (q === '') {
+            if (activeDateFilter) {
+                searchByDate();
+            } else {
+                filteredData = null;
+            }
+        } else {
+            const sourceData = showingArchive ? archive : orders;
+            let filtered = sourceData.filter(o => o.customer.toLowerCase().includes(q));
+            
+            if (activeDateFilter) {
+                filtered = filtered.filter(o => o.date === activeDateFilter);
+            }
+            
+            filteredData = filtered;
+        }
+        render();
+    }
+    
+    function searchByDate() {
+        const dateInput = document.getElementById('dateSearchInput').value;
+        const nameSearch = document.getElementById('searchInput').value.toLowerCase().trim();
+        
+        if (!dateInput) {
+            alert('សូមជ្រើសរើសថ្ងៃខែ | 请选择日期');
+            return;
+        }
+        
+        activeDateFilter = dateInput;
+        const sourceData = showingArchive ? archive : orders;
+        
+        let filtered = sourceData.filter(o => o.date === dateInput);
+        
+        if (nameSearch !== '') {
+            filtered = filtered.filter(o => o.customer.toLowerCase().includes(nameSearch));
+        }
+        
+        filteredData = filtered;
+        
+        document.getElementById('dateSearchInput').style.border = '2px solid var(--primary)';
+        render();
+    }
+    
+    function clearDateSearch() {
+        activeDateFilter = null;
+        document.getElementById('dateSearchInput').value = '';
+        document.getElementById('dateSearchInput').style.border = '1px solid #ddd';
+        
+        const nameSearch = document.getElementById('searchInput').value.toLowerCase().trim();
+        if (nameSearch !== '') {
+            const sourceData = showingArchive ? archive : orders;
+            filteredData = sourceData.filter(o => o.customer.toLowerCase().includes(nameSearch));
+        } else {
+            filteredData = null;
+        }
+        
+        render();
     }
     
     function toggleArchive() { 
         showingArchive = !showingArchive; 
+        clearDateSearch();
+        document.getElementById('searchInput').value = '';
+        filteredData = null;
         render(); 
     }
 
-    
-// ===== ✅ NEW FEATURES: Today First + Summary + Filter + Highlight =====
+    function renderSummary(){
+        const today = getTodayString();
+        const yesterday = getYesterdayString();
 
-let showTodayOnly = false;
+        const todayCount = orders.filter(o=>o.date===today).length;
+        const yesterdayCount = orders.filter(o=>o.date===yesterday).length;
+        const monthCount = orders.length;
 
-function getTodayString(){
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth()+1).padStart(2,'0');
-    const d = String(now.getDate()).padStart(2,'0');
-    return `${y}-${m}-${d}`;
-}
+        const summaryDiv = document.getElementById("gallerySummary");
+        summaryDiv.innerHTML = `
+        <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+            <span>📊 <span style="color:green">ថ្ងៃនេះ | 今天:</span> <b style="color:green">${todayCount}</b></span>
+            <span>📊 <span style="color:blue">ម្សិលមិញ | 昨天:</span> <b style="color:blue">${yesterdayCount}</b></span>
+            <span>📊 <span style="color:red">ខែនេះ | 本月:</span> <b style="color:red">${monthCount}</b></span>
+            <button onclick="toggleTodayFilter()" style="padding:6px 12px;border:none;border-radius:6px;background:#1e3c72;color:white;cursor:pointer;">
+                ${showTodayOnly ? "បង្ហាញទាំងអស់ | 显示全部" : "បង្ហាញតែថ្ងៃនេះ | 仅显示今天"}
+            </button>
+            ${activeDateFilter ? `
+            <button onclick="clearDateSearch()" style="padding:6px 12px;border:none;border-radius:6px;background:#28a745;color:white;cursor:pointer;">
+                <i class="fas fa-filter"></i> ${activeDateFilter} (Click to Clear)
+            </button>
+            ` : ''}
+        </div>
+        `;
+    }
 
-function getYesterdayString(){
-    const now = new Date();
-    now.setDate(now.getDate()-1);
-    const y = now.getFullYear();
-    const m = String(now.getMonth()+1).padStart(2,'0');
-    const d = String(now.getDate()).padStart(2,'0');
-    return `${y}-${m}-${d}`;
-}
+    function toggleTodayFilter(){
+        showTodayOnly = !showTodayOnly;
+        if (showTodayOnly) {
+            clearDateSearch();
+            document.getElementById('searchInput').value = '';
+        }
+        render();
+    }
 
-function renderSummary(){
-    const today = getTodayString();
-    const yesterday = getYesterdayString();
-
-    const todayCount = orders.filter(o=>o.date===today).length;
-    const yesterdayCount = orders.filter(o=>o.date===yesterday).length;
-    const monthCount = orders.length;
-
-    const summaryDiv = document.getElementById("gallerySummary");
-    summaryDiv.innerHTML = `
-    📊 Today: <b style="color:green">${todayCount}</b> |
-    📊 Yesterday: <b style="color:blue">${yesterdayCount}</b> |
-    📊 This Month: <b style="color:red">${monthCount}</b>
-    <br><br>
-    <button onclick="toggleTodayFilter()" style="padding:6px 12px;border:none;border-radius:6px;background:#1e3c72;color:white;cursor:pointer;">
-    ${showTodayOnly ? "Show All" : "Show Today Only"}
-    </button>
-    `;
-}
-
-function toggleTodayFilter(){
-    showTodayOnly = !showTodayOnly;
-    render();
-}
-
-window.onload = () => { 
+    window.onload = () => { 
         loadFromCloud(); 
         const now = new Date();
         const year = now.getFullYear();
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const day = String(now.getDate()).padStart(2, '0');
         document.getElementById('date-display').innerHTML = "ថ្ងៃនេះ | 今天: " + `${year}-${month}-${day}`; 
+        
+        const today = `${year}-${month}-${day}`;
+        document.getElementById('dateSearchInput').max = today;
     };
 </script>
 </body>

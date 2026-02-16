@@ -555,8 +555,8 @@
 
 <script>
     // ==================== CONFIGURATION ====================
-    // ✅ បានបញ្ចូល URL របស់ Google Apps Script រួចរាល់
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwEPmQvgCmUmxg5c6dYkGS9LClM_srQ1ziyvhWiX6AvW_2MZAfFq7xfpKOZJyLd5iGlbA/exec";
+    // ជំនួស URL នេះជាមួយ URL របស់ Google Apps Script ដែលអ្នកបានដាក់ពង្រាយ
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxdKHEXVLipEg4E49-Is7JK9AiJJPP-zg4VbqFe0PW15cUCoqxaPOncGSUTigwAyP2eAg/exec"; 
     
     // ==================== GLOBAL VARIABLES ====================
     let orders = [];
@@ -570,12 +570,14 @@
     
     // ==================== UTILITY FUNCTIONS ====================
     
+    // បង្ហាញ Toast ធម្មតា
     function showToast() { 
         let t = document.getElementById('saveToast'); 
         t.style.display = 'flex'; 
         setTimeout(() => { t.style.display = 'none'; }, 2000); 
     }
     
+    // បង្ហាញ Toast ផ្ទាល់ខ្លួន
     function showCustomToast(message, type = 'success') {
         let toastContainer = document.getElementById('customToastContainer');
         
@@ -603,10 +605,12 @@
         }, 5000);
     }
     
+    // បើក Camera
     function openCamera(i) { 
         document.getElementById(i).click(); 
     }
     
+    // ការពារ XSS
     function escapeHtml(t) { 
         if(!t) return ''; 
         let d = document.createElement('div'); 
@@ -614,6 +618,7 @@
         return d.innerHTML; 
     }
     
+    // ទទួលបានថ្ងៃនេះ
     function getToday() { 
         let n = new Date(); 
         return n.getFullYear() + '-' + 
@@ -621,6 +626,7 @@
                String(n.getDate()).padStart(2,'0'); 
     }
     
+    // ទទួលបានថ្ងៃម្សិលមិញ
     function getYesterday() { 
         let n = new Date(); 
         n.setDate(n.getDate()-1); 
@@ -629,6 +635,7 @@
                String(n.getDate()).padStart(2,'0'); 
     }
     
+    // កែទម្រង់កាលបរិច្ឆេទ
     function formatLocalDate(d) { 
         if(!d) return ''; 
         try {
@@ -637,7 +644,7 @@
                 return d;
             }
             let u = n.getTime() + (n.getTimezoneOffset()*60000);
-            let c = new Date(u + (7*60*60000));
+            let c = new Date(u + (7*60*60000)); // GMT+7
             return c.getFullYear() + '-' + 
                    String(c.getMonth()+1).padStart(2,'0') + '-' + 
                    String(c.getDate()).padStart(2,'0'); 
@@ -648,8 +655,10 @@
     
     // ==================== BACKUP FUNCTIONS ====================
     
+    // មុខងារ Backup ដោយដៃ - រក្សាទុកជា JSON file
     function manualBackupToComputer() {
         try {
+            // បង្កើតវត្ថុទិន្នន័យសម្រាប់ Backup
             const backupData = {
                 orders: orders,
                 archive: archive,
@@ -659,10 +668,16 @@
                 totalArchive: archive.length
             };
             
+            // បម្លែងជា JSON ដោយដាក់ឲ្យស្អាត
             const jsonData = JSON.stringify(backupData, null, 2);
+            
+            // បង្កើត Blob សម្រាប់ទាញយក
             const blob = new Blob([jsonData], { type: 'application/json' });
+            
+            // បង្កើត URL សម្រាប់ទាញយក
             const url = URL.createObjectURL(blob);
             
+            // បង្កើតឈ្មោះឯកសារ ដោយមានកាលបរិច្ឆេទ
             const today = new Date();
             const dateStr = today.getFullYear() + '-' + 
                            String(today.getMonth() + 1).padStart(2, '0') + '-' + 
@@ -672,6 +687,7 @@
             
             const filename = `DHK_Backup_${dateStr}.json`;
             
+            // បង្កើតតំណទាញយក
             const a = document.createElement('a');
             a.href = url;
             a.download = filename;
@@ -679,7 +695,10 @@
             a.click();
             document.body.removeChild(a);
             
+            // សម្អាត URL
             URL.revokeObjectURL(url);
+            
+            // បង្ហាញសារជោគជ័យ
             showCustomToast('✅ បានរក្សាទុក Backup ដោយជោគជ័យ!', 'success');
             
         } catch (error) {
@@ -688,6 +707,7 @@
         }
     }
 
+    // មុខងារ Restore ពីឯកសារ JSON
     function restoreFromComputer() {
         const input = document.createElement('input');
         input.type = 'file';
@@ -734,16 +754,14 @@
     
     // ==================== CLOUD FUNCTIONS ====================
     
+    // ផ្ទុកទិន្នន័យពី Cloud
     async function loadFromCloud() {
         document.getElementById('loading').style.display = 'flex';
         try {
-            console.log('Loading from cloud:', SCRIPT_URL);
             let response = await fetch(SCRIPT_URL);
-            
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            
             let data = await response.json();
             
             if (data.error) {
@@ -760,7 +778,7 @@
             }
             
             data.forEach(row => {
-                if (row && row.length >= 10) {
+                if (row.length >= 10) {
                     let item = { 
                         id: row[0], 
                         customer: row[2], 
@@ -779,13 +797,15 @@
                 }
             });
             
+            // រក្សាទុកក្នុង localStorage ជា backup
             localStorage.setItem('backupOrders', JSON.stringify({ orders, archive }));
+            
             render();
-            showCustomToast('បានផ្ទុកទិន្នន័យពី Cloud ដោយជោគជ័យ!', 'success');
             
         } catch(e) { 
             console.error('Failed to load from cloud:', e);
             
+            // សាកល្បងអានពី localStorage វិញ
             let localData = localStorage.getItem('backupOrders');
             if (localData) {
                 try {
@@ -797,13 +817,12 @@
                 } catch(backupError) {
                     console.error('Failed to load backup:', backupError);
                 }
-            } else {
-                showCustomToast('មិនអាចភ្ជាប់ Cloud និងគ្មានទិន្នន័យបម្រុងទុក', 'error');
             }
         }
         document.getElementById('loading').style.display = 'none';
     }
     
+    // រក្សាទុកទៅ Cloud
     function saveToCloud() {
         if(saveTimer) clearTimeout(saveTimer);
         
@@ -813,8 +832,6 @@
             localStorage.setItem('backupOrders', JSON.stringify({ orders, archive }));
             
             try {
-                console.log('Sending data to Cloud...', { orders: orders.length, archive: archive.length });
-                
                 let response = await fetch(SCRIPT_URL, {
                     method: 'POST',
                     headers: {
@@ -827,25 +844,17 @@
                     })
                 });
 
-                console.log('Response status:', response.status);
-                
-                let responseText = await response.text();
-                console.log('Response text:', responseText);
-                
-                let result;
-                try {
-                    result = JSON.parse(responseText);
-                } catch(e) {
-                    console.error('Failed to parse JSON:', e);
-                    throw new Error('Invalid JSON response from server');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
+
+                let result = await response.json();
                 
-                if (response.ok && result.success) {
+                if (result.success) {
                     showToast();
                     console.log('Saved successfully:', result.count, 'records');
-                    showCustomToast('រក្សាទុកទៅ Cloud ដោយជោគជ័យ!', 'success');
                 } else {
-                    throw new Error(result.error || `HTTP error! status: ${response.status}`);
+                    throw new Error(result.error || 'Unknown error');
                 }
 
             } catch(e) { 
@@ -881,6 +890,7 @@
         });
         let dates = Object.keys(byDate).sort((a,b) => b.localeCompare(a));
         
+        // បង្ហាញក្នុងតារាង
         data.forEach(o => {
             let s = o.status === 'shipped';
             tb.innerHTML += `<tr>
@@ -896,6 +906,7 @@
             </tr>`;
         });
         
+        // បង្ហាញក្នុង Gallery
         dates.forEach(d => {
             let list = byDate[d];
             let shipped = list.filter(o => o.status === 'shipped');
@@ -947,6 +958,7 @@
     
     // ==================== ORDER FUNCTIONS ====================
     
+    // បន្ថែមកម្មង់ថ្មី
     document.getElementById('orderForm').onsubmit = function(e) {
         e.preventDefault();
         let f = document.getElementById('productImage').files[0];
@@ -980,6 +992,7 @@
         r.readAsDataURL(f);
     };
     
+    // ប្តូរស្ថានភាព
     function toggleStatus(id) {
         let arr = showingArchive ? archive : orders;
         let i = arr.findIndex(o => o.id === id);
@@ -989,6 +1002,7 @@
         saveToCloud();
     }
     
+    // លុបកម្មង់តែមួយ
     function deleteSingle(id) {
         if(confirm('លុប?') && prompt('បញ្ចូលលេខសម្ងាត់:') === PASS) {
             if(showingArchive) archive = archive.filter(o => o.id !== id);
@@ -1000,6 +1014,7 @@
         }
     }
     
+    // បោះពុម្ពវិក្កយបត្រ
     function printInvoice(id) {
         let o = orders.find(o => o.id === id) || archive.find(o => o.id === id);
         if(!o) return;
@@ -1029,6 +1044,9 @@
         </html>`);
     }
     
+    // ==================== MONTHLY FUNCTIONS ====================
+    
+    // បិទបញ្ជីប្រចាំខែ
     function closeMonth() { 
         if(confirm('តើអ្នកចង់បិទបញ្ជីប្រចាំខែមែនទេ?') && prompt('បញ្ចូលលេខសម្ងាត់:') === PASS) { 
             archive = [...archive, ...orders]; 
@@ -1040,6 +1058,7 @@
         } 
     }
     
+    // លុបទិន្នន័យទាំងអស់
     function deleteMonth() { 
         if(confirm('តើអ្នកចង់លុបទិន្នន័យទាំងអស់មែនទេ?') && prompt('បញ្ចូលលេខសម្ងាត់:') === PASS) { 
             orders = []; 
@@ -1051,6 +1070,9 @@
         } 
     }
     
+    // ==================== SEARCH FUNCTIONS ====================
+    
+    // ត្រងទិន្នន័យ
     function filterData() {
         let q = document.getElementById('searchInput').value.toLowerCase().trim();
         if(!q && !activeDateFilter) { filteredData = null; render(); return; }
@@ -1061,6 +1083,7 @@
         render();
     }
     
+    // ស្វែងរកតាមថ្ងៃ
     function searchByDate() {
         let d = document.getElementById('dateSearchInput').value;
         if(!d) { 
@@ -1071,12 +1094,14 @@
         filterData();
     }
     
+    // សម្អាតការស្វែងរក
     function clearDateSearch() {
         activeDateFilter = null;
         document.getElementById('dateSearchInput').value = '';
         filterData();
     }
     
+    // ប្តូររវាង Current និង Archive
     function toggleArchive() { 
         showingArchive = !showingArchive; 
         clearDateSearch(); 
@@ -1084,6 +1109,9 @@
         render(); 
     }
     
+    // ==================== IMAGE FUNCTIONS ====================
+    
+    // មើលរូបភាពធំ
     function viewImage(s, n, q, t) {
         document.getElementById('viewer').style.display = 'flex';
         document.getElementById('viewerImg').src = s;
@@ -1093,6 +1121,8 @@
             <div><b>ចំនួន:</b> <span style="color:#ff4d4d;">${escapeHtml(q)}</span></div>
         `;
     }
+    
+    // ==================== INITIALIZATION ====================
     
     window.onload = () => {
         loadFromCloud();

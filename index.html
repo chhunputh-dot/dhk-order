@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>DHK - Cloud Order System (Fast & Compressed)</title>
+    <title>DHK - Cloud Order System (Fast Mode)</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { 
@@ -106,12 +106,8 @@
             font-size: 0.7rem; 
             min-width: 70px; 
         }
-        .bg-warning { 
-            background: #f39c12; 
-        }
-        .bg-success { 
-            background: #28a745 !important; 
-        }
+        .bg-warning { background: #f39c12; }
+        .bg-success { background: #28a745 !important; }
         
         .btn { 
             padding: 5px 8px; 
@@ -125,22 +121,11 @@
             font-size: 0.7rem; 
             color: white; 
         }
-        .btn-info { 
-            background: #17a2b8; 
-        }
-        .btn-pink { 
-            background: #d93d4a; 
-        } 
-        .btn-red { 
-            background: #c82333; 
-        }
-        .btn-success { 
-            background: #28a745; 
-        }
-        .btn-warning { 
-            background: #ffc107; 
-            color: #000; 
-        }
+        .btn-info { background: #17a2b8; }
+        .btn-pink { background: #d93d4a; } 
+        .btn-red { background: #c82333; }
+        .btn-success { background: #28a745; }
+        .btn-warning { background: #ffc107; color: #000; }
         
         /* Gallery */
         .gallery { 
@@ -205,7 +190,7 @@
             padding: 0 10px; 
         }
         
-        /* Loading */
+        /* Loading Overlay */
         .loading-overlay { 
             display: none; 
             position: fixed; 
@@ -219,149 +204,9 @@
             align-items: center; 
             font-weight: bold; 
             flex-direction: column; 
-            font-size: 0.8rem; 
         }
         
-        /* Camera Button */
-        .camera-btn { 
-            background: #2a5298; 
-            color: white; 
-            padding: 8px; 
-            border-radius: 4px; 
-            cursor: pointer; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            gap: 5px; 
-            font-size: 0.8rem; 
-        }
-        
-        /* Search */
-        .search-container { 
-            display: flex; 
-            gap: 5px; 
-            flex-wrap: wrap; 
-            align-items: center; 
-            width: 100%; 
-        }
-        .date-search { 
-            display: flex; 
-            gap: 2px; 
-            align-items: center; 
-            background: white; 
-            padding: 2px; 
-            border-radius: 4px; 
-            border: 1px solid #ddd; 
-        }
-        .date-search input[type="date"] { 
-            border: none; 
-            padding: 4px; 
-            border-radius: 3px; 
-            font-size: 0.7rem; 
-            width: 100px; 
-        }
-        .date-search button { 
-            background: #1e3c72; 
-            color: white; 
-            border: none; 
-            padding: 4px 6px; 
-            border-radius: 3px; 
-            cursor: pointer; 
-            font-size: 0.7rem; 
-        }
-        
-        /* Date Header */
-        .date-header { 
-            grid-column: 1 / -1; 
-            margin: 10px 0 5px 0; 
-            padding: 8px; 
-            background: linear-gradient(135deg, #1e3c72, #2a5298); 
-            color: white; 
-            border-radius: 6px; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 5px; 
-        }
-        @media (min-width: 600px) { 
-            .date-header { 
-                flex-direction: row; 
-                justify-content: space-between; 
-                align-items: center; 
-            } 
-        }
-        
-        .date-header .date-title { 
-            font-size: 0.9rem; 
-            font-weight: bold; 
-        }
-        .date-header .stats { 
-            display: flex; 
-            gap: 5px; 
-            flex-wrap: wrap; 
-        }
-        .date-header .stat-badge { 
-            padding: 2px 6px; 
-            border-radius: 12px; 
-            font-size: 0.7rem; 
-            font-weight: bold; 
-            white-space: nowrap; 
-        }
-        .date-header .stat-badge.total { 
-            background: rgba(255,255,255,0.2); 
-        }
-        .date-header .stat-badge.shipped { 
-            background: #28a745; 
-        }
-        .date-header .stat-badge.pending { 
-            background: #f39c12; 
-        }
-        
-        /* Item Details */
-        .item-details { 
-            margin: 3px 0; 
-            font-size: 0.7rem; 
-            text-align: left; 
-            padding: 3px; 
-            background: #f8f9fa; 
-            border-radius: 3px; 
-        }
-        .shipped-label { 
-            margin-top: 2px; 
-            color: #28a745; 
-            font-size: 0.65rem; 
-            font-weight: bold; 
-        }
-        
-        /* Toast */
-        .save-toast { 
-            position: fixed; 
-            bottom: 10px; 
-            right: 10px; 
-            background: #28a745; 
-            color: white; 
-            padding: 6px 12px; 
-            border-radius: 20px; 
-            display: none; 
-            align-items: center; 
-            gap: 5px; 
-            z-index: 10000; 
-            animation: slideIn 0.3s; 
-            font-size: 0.8rem; 
-        }
-        @keyframes slideIn { 
-            from { transform: translateX(100%); opacity: 0; } 
-            to { transform: translateX(0); opacity: 1; } 
-        }
-        
-        #gallerySummary { 
-            font-size: 0.8rem; 
-        }
-        #gallerySummary button { 
-            font-size: 0.7rem; 
-            padding: 3px 6px; 
-        }
-        
-        /* Custom Toast Container */
+        /* Toast Container */
         #customToastContainer {
             position: fixed;
             bottom: 20px;
@@ -371,7 +216,6 @@
             flex-direction: column;
             gap: 10px;
         }
-        
         .custom-toast {
             color: white;
             padding: 12px 20px;
@@ -382,29 +226,29 @@
             align-items: center;
             gap: 10px;
             animation: slideInRight 0.3s ease;
-            max-width: 350px;
         }
-        
         @keyframes slideInRight {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
-        
-        @keyframes slideOutRight {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(100%); opacity: 0; }
+
+        .date-header { 
+            grid-column: 1 / -1; 
+            margin: 10px 0 5px 0; 
+            padding: 8px; 
+            background: linear-gradient(135deg, #1e3c72, #2a5298); 
+            color: white; 
+            border-radius: 6px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
         }
-        
-        /* Responsive */
-        @media (max-width: 480px) {
-            body { padding: 5px; }
-            .header h1 { font-size: 1rem; }
-            .header h3 { font-size: 0.8rem; }
-            .gallery { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 5px; }
-            .image-item img { height: 70px; }
-            .btn-status { min-width: 60px; padding: 3px 4px; font-size: 0.65rem; }
-            .btn { padding: 4px 6px; font-size: 0.65rem; }
-            th, td { padding: 4px; font-size: 0.7rem; }
+        .stat-badge { 
+            padding: 2px 6px; 
+            border-radius: 12px; 
+            font-size: 0.7rem; 
+            font-weight: bold; 
+            background: rgba(255,255,255,0.2); 
         }
     </style>
 </head>
@@ -412,11 +256,7 @@
 
 <div id="loading" class="loading-overlay">
     <i class="fas fa-spinner fa-spin fa-3x" style="color:#1e3c72; margin-bottom:10px;"></i>
-    <div>កំពុងដំណើរការ...</div>
-</div>
-
-<div id="saveToast" class="save-toast">
-    <i class="fas fa-check-circle"></i> រក្សាទុករួចរាល់
+    <div id="loadingText">កំពុងដំណើរការ...</div>
 </div>
 
 <div id="customToastContainer"></div>
@@ -449,13 +289,8 @@
                 <input type="text" id="quantity" class="form-control" required placeholder="ឧ៖ 100pcs">
             </div>
             <div>
-                <label>រូបភាព | 图片 (បង្រួមអូតូ)</label>
-                <div style="display: flex; gap: 5px;">
-                    <input type="file" id="productImage" class="form-control" accept="image/*" capture="environment" style="flex:1;">
-                    <button type="button" class="camera-btn" onclick="openCamera('productImage')">
-                        <i class="fas fa-camera"></i>
-                    </button>
-                </div>
+                <label>រូបភាព | 图片 (បង្រួមស្វ័យប្រវត្តិ)</label>
+                <input type="file" id="productImage" class="form-control" accept="image/*" capture="environment">
             </div>
             <button type="submit" class="btn" style="background:#1e3c72;">
                 <i class="fas fa-save"></i> រក្សាទុក
@@ -466,62 +301,24 @@
     <div class="card" style="background:#eef2f7;">
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px;">
             <h3><i class="fas fa-search"></i> ស្វែងរក</h3>
-            <div class="search-container">
-                <input type="text" id="searchInput" class="form-control" style="flex:2;" 
-                       placeholder="ស្វែងរកតាមឈ្មោះ..." onkeyup="filterData()">
-                <div class="date-search">
-                    <input type="date" id="dateSearchInput" onchange="searchByDate()">
-                    <button onclick="searchByDate()"><i class="fas fa-calendar-day"></i> ថ្ងៃ</button>
-                </div>
-                <button class="btn" style="background:#6c757d;" onclick="clearDateSearch()">
-                    <i class="fas fa-times"></i> សម្អាត
-                </button>
-                <button class="btn" style="background:#6c757d;" onclick="toggleArchive()">
-                    <i class="fas fa-history"></i> ខែចាស់
-                </button>
-            </div>
+            <input type="text" id="searchInput" class="form-control" style="max-width:300px;" placeholder="ស្វែងរកតាមឈ្មោះ..." onkeyup="render()">
+            <button class="btn" style="background:#6c757d;" onclick="toggleArchive()">
+                <i class="fas fa-history"></i> មើលខែចាស់
+            </button>
         </div>
-        <div id="gallerySummary" style="font-weight:bold; color:#1e3c72; margin-bottom:8px;"></div>
         <div id="gallery" class="gallery"></div>
     </div>
 
     <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:5px;">
-            <h3><i class="fas fa-list"></i> បញ្ជីកម្មង់ | 订单列表</h3>
-            <div style="display:flex; gap:5px; flex-wrap:wrap;">
-                <button class="btn btn-info" onclick="alert('មុខងារនឹងមកដល់ឆាប់ៗ...')">
-                    <i class="fas fa-file-alt"></i> របាយការណ៍ខែ
-                </button>
-                
-                <button class="btn btn-success" onclick="manualBackupToComputer()">
-                    <i class="fas fa-download"></i> ទាញយក Backup
-                </button>
-                <button class="btn btn-warning" onclick="restoreFromComputer()">
-                    <i class="fas fa-upload"></i> ស្តារ Backup
-                </button>
-                
-                <button class="btn btn-pink" onclick="closeMonth()">
-                    <i class="fas fa-calendar-check"></i> បិទបញ្ជី
-                </button>
-                <button class="btn btn-red" onclick="deleteMonth()">
-                    <i class="fas fa-trash"></i> លុប
-                </button>
-            </div>
-        </div>
+        <h3><i class="fas fa-list"></i> បញ្ជីកម្មង់ | 订单列表</h3>
         <div style="overflow-x:auto;">
             <table>
                 <thead>
                     <tr>
-                        <th>រោងចក្រ</th>
-                        <th>ប្រភេទ</th>
-                        <th>បរិមាណ</th>
-                        <th>ថ្ងៃខែ</th>
-                        <th>ស្ថានភាព</th>
-                        <th>សកម្មភាព</th>
+                        <th>រោងចក្រ</th><th>ប្រភេទ</th><th>បរិមាណ</th><th>ថ្ងៃខែ</th><th>ស្ថានភាព</th><th>សកម្មភាព</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody"></tbody>
-                <tfoot id="tableFoot"></tfoot>
             </table>
         </div>
     </div>
@@ -538,64 +335,29 @@
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rd3p1Z3dxeWx0dHBhdHZ6cWhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyMjczOTksImV4cCI6MjA4NjgwMzM5OX0.KkX-Bgk8uLQEgmDFITUeiBr1iuRppociU4kUrAgCOlU";
     const HEADERS = { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY, "Content-Type": "application/json", "Prefer": "return=representation" };
     
-    // ==================== GLOBAL VARIABLES ====================
     let orders = [];
     let archive = [];
     let showingArchive = false;
-    let showTodayOnly = false;
-    let filteredData = null;
-    let activeDateFilter = null;
-    const PASS = "1234";
-    let saveTimer;
-    
+
     // ==================== UTILITY FUNCTIONS ====================
-    
-    function showToast() { 
-        let t = document.getElementById('saveToast'); 
-        t.style.display = 'flex'; 
-        setTimeout(() => { t.style.display = 'none'; }, 2000); 
-    }
-    
     function showCustomToast(message, type = 'success') {
-        let toastContainer = document.getElementById('customToastContainer');
+        const container = document.getElementById('customToastContainer');
         const toast = document.createElement('div');
         toast.className = 'custom-toast';
         toast.style.background = type === 'success' ? '#28a745' : (type === 'warning' ? '#f39c12' : '#dc3545');
-        toast.innerHTML = `
-            <i class="fas ${type === 'success' ? 'fa-check-circle' : (type === 'warning' ? 'fa-clock' : 'fa-exclamation-circle')}"></i>
-            <span style="flex:1;">${message}</span>
-            <i class="fas fa-times" style="cursor:pointer; opacity:0.7;" onclick="this.parentElement.remove()"></i>
-        `;
-        toastContainer.appendChild(toast);
-        setTimeout(() => {
-            if (toast.parentElement) {
-                toast.style.animation = 'slideOutRight 0.3s ease';
-                setTimeout(() => { if (toast.parentElement) toast.remove(); }, 300);
-            }
-        }, 3000);
+        toast.innerHTML = `<i class="fas fa-info-circle"></i> <span>${message}</span>`;
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
     }
-    
-    function openCamera(i) { document.getElementById(i).click(); }
-    
-    function escapeHtml(t) { 
-        if(!t) return ''; 
-        let d = document.createElement('div'); 
-        d.textContent = t; 
-        return d.innerHTML; 
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
-    
-    function getToday() { 
-        let n = new Date(); 
-        return n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0') + '-' + String(n.getDate()).padStart(2,'0'); 
-    }
-    
-    function getYesterday() { 
-        let n = new Date(); 
-        n.setDate(n.getDate()-1); 
-        return n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0') + '-' + String(n.getDate()).padStart(2,'0'); 
-    }
-    
-    // ==================== IMAGE COMPRESSION FUNCTION (NEW) ====================
+
+    // ==================== IMAGE COMPRESSION ====================
+    // មុខងារនេះធានាថា រូបភាពថតពីទូរស័ព្ទនឹងត្រូវបានបង្រួមឱ្យនៅតូចមុន Save
     function compressImage(file, maxWidth, maxHeight, quality) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -618,235 +380,145 @@
                     canvas.height = height;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
-                    const dataUrl = canvas.toDataURL('image/jpeg', quality);
-                    resolve(dataUrl);
+                    resolve(canvas.toDataURL('image/jpeg', quality));
                 };
             };
-            reader.onerror = (error) => reject(error);
+            reader.onerror = reject;
         });
     }
 
-    // ==================== BACKUP & CLOUD FUNCTIONS ====================
-    
-    function manualBackupToComputer() {
-        try {
-            const backupData = { orders, archive, backupDate: new Date().toLocaleString('km-KH'), version: "1.0" };
-            const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `DHK_Backup_${getToday()}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            showCustomToast('✅ Backup ជោគជ័យ!', 'success');
-        } catch (e) { showCustomToast('❌ Backup បរាជ័យ', 'error'); }
-    }
-
-    function restoreFromComputer() {
-        const input = document.createElement('input');
-        input.type = 'file'; input.accept = '.json';
-        input.onchange = (e) => {
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                try {
-                    const data = JSON.parse(ev.target.result);
-                    if (confirm('ជំនួសទិន្នន័យបច្ចុប្បន្ន?')) {
-                        orders = data.orders || []; archive = data.archive || [];
-                        render(); saveAllToCloud();
-                        showCustomToast('✅ ស្តារទិន្នន័យជោគជ័យ', 'success');
-                    }
-                } catch (err) { showCustomToast('❌ ឯកសារមិនត្រឹមត្រូវ', 'error'); }
-            };
-            reader.readAsText(e.target.files[0]);
-        };
-        input.click();
-    }
-    
+    // ==================== CORE FUNCTIONS ====================
     async function loadFromCloud() {
         document.getElementById('loading').style.display = 'flex';
         try {
-            let response = await fetch(SUPABASE_URL + "/rest/v1/orders?select=*&order=created_at.desc", { headers: HEADERS });
-            let data = await response.json();
-            orders = []; archive = [];
-            data.forEach(row => {
-                let item = { id: row.id, customer: row.customer, type: row.type, qty: row.qty, img: row.img || '', date: row.date, status: row.status || 'pending' };
-                if (row.is_archive) archive.push(item); else orders.push(item);
-            });
-            localStorage.setItem('backupOrders', JSON.stringify({ orders, archive }));
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/orders?select=*&order=id.desc`, { headers: HEADERS });
+            const data = await response.json();
+            orders = data.filter(o => !o.is_archive);
+            archive = data.filter(o => o.is_archive);
             render();
-        } catch(e) {
-            let local = localStorage.getItem('backupOrders');
-            if (local) {
-                let b = JSON.parse(local); orders = b.orders || []; archive = b.archive || [];
-                render(); showCustomToast('កំពុងប្រើទិន្នន័យបម្រុងទុក (Offline)', 'warning');
-            }
-        }
+        } catch(e) { showCustomToast('Error loading data', 'error'); }
         document.getElementById('loading').style.display = 'none';
     }
-    
-    function saveAllToCloud() {
-        if(saveTimer) clearTimeout(saveTimer);
-        saveTimer = setTimeout(async () => {
-            document.getElementById('loading').style.display = 'flex';
-            try {
-                await fetch(SUPABASE_URL + "/rest/v1/orders?id=gt.0", { method: 'DELETE', headers: HEADERS });
-                let all = [
-                    ...orders.map(o => ({ ...o, is_archive: false })),
-                    ...archive.map(o => ({ ...o, is_archive: true }))
-                ];
-                if (all.length > 0) await fetch(SUPABASE_URL + "/rest/v1/orders", { method: 'POST', headers: HEADERS, body: JSON.stringify(all) });
-                showToast();
-            } catch(e) { showCustomToast('Cloud Sync Error', 'warning'); }
-            document.getElementById('loading').style.display = 'none';
-        }, 500);
-    }
-    
-    // ==================== RENDER & FILTER FUNCTIONS ====================
-    
-    function render() {
-        let data = filteredData || (showingArchive ? archive : orders);
-        let today = getToday();
-        data = [...data].sort((a,b) => b.date.localeCompare(a.date) || b.id - a.id);
-        if(showTodayOnly && !filteredData) data = data.filter(o => o.date === today);
-        
-        let tb = document.getElementById('tableBody');
-        let gl = document.getElementById('gallery');
-        tb.innerHTML = ''; gl.innerHTML = '';
-        
-        let byDate = {};
-        data.forEach(o => { if(!byDate[o.date]) byDate[o.date] = []; byDate[o.date].push(o); });
-        let dates = Object.keys(byDate).sort((a,b) => b.localeCompare(a));
-        
-        data.forEach(o => {
-            let s = o.status === 'shipped';
-            tb.innerHTML += `<tr>
-                <td><b>${escapeHtml(o.customer)}</b></td>
-                <td>${escapeHtml(o.type)}</td>
-                <td><b style="color:red">${escapeHtml(o.qty)}</b></td>
-                <td>${o.date}</td>
-                <td><button onclick="toggleStatus(${o.id})" class="btn-status ${s ? 'bg-success' : 'bg-warning'}">${s ? '已发货' : '生产中'}</button></td>
-                <td>
-                    <button onclick="printInvoice(${o.id})" class="btn" style="background:#2ecc71;padding:4px;"><i class="fas fa-print"></i></button> 
-                    <button onclick="deleteSingle(${o.id})" class="btn btn-red" style="padding:4px;"><i class="fas fa-trash"></i></button>
-                </td>
-            </tr>`;
-        });
-        
-        dates.forEach(d => {
-            let list = byDate[d], shipped = list.filter(o => o.status === 'shipped'), pending = list.filter(o => o.status === 'pending');
-            gl.innerHTML += `<div class="date-header">
-                <div class="date-title"><i class="far fa-calendar-alt"></i> ${d} ${d===today ? ' <span style="background:#ffc107;color:#000;padding:2px 6px;border-radius:10px;">ថ្ងៃនេះ</span>' : ''}</div>
-                <div class="stats"><span class="stat-badge total">សរុប: ${list.length}</span><span class="stat-badge shipped">ផ្ញើរ: ${shipped.length}</span><span class="stat-badge pending">ផលិត: ${pending.length}</span></div>
-            </div>`;
-            [...shipped, ...pending].forEach(o => {
-                let s = o.status === 'shipped';
-                gl.innerHTML += `<div class="image-item ${s ? 'shipped' : ''}">
-                    <img src="${o.img}" onclick="viewImage('${o.img}','${escapeHtml(o.customer)}','${escapeHtml(o.qty)}','${escapeHtml(o.type)}')">
-                    <div style="padding:5px;">
-                        <h4>${escapeHtml(o.customer)}</h4>
-                        <div class="item-details"><div><span>ប្រភេទ:</span> ${escapeHtml(o.type)}</div><div><span>បរិមាណ:</span> <b style="color:red">${escapeHtml(o.qty)}</b></div></div>
-                        <button onclick="toggleStatus(${o.id})" class="btn-status ${s ? 'bg-success' : 'bg-warning'}" style="width:100%;margin-top:3px;">${s ? '✅ បានផ្ញើរ' : '🔄 ផលិតកម្ម'}</button>
-                    </div>
-                </div>`;
-            });
-        });
-        document.getElementById('tableFoot').innerHTML = `<tr class="total-row"><td colspan="6" style="text-align:center;">សរុប: <span style="color:red">${data.length}</span> កម្មង់</td></tr>`;
-        document.getElementById('gallerySummary').innerHTML = `📊 ថ្ងៃនេះ: <b style="color:green">${orders.filter(o=>o.date===today).length}</b> | ខែនេះ: <b style="color:red">${orders.length}</b> 
-        <button onclick="showTodayOnly=!showTodayOnly;render();" class="btn" style="background:#1e3c72;margin-left:10px;">${showTodayOnly?'ទាំងអស់':'ថ្ងៃនេះ'}</button>`;
-    }
-    
-    // ==================== UPDATED ORDER FORM (WITH COMPRESSION) ====================
+
     document.getElementById('orderForm').onsubmit = async function(e) {
         e.preventDefault();
-        let f = document.getElementById('productImage').files[0];
-        if(!f) { showCustomToast('សូមជ្រើសរើសរូបភាព', 'error'); return; }
-        
-        showCustomToast('កំពុងបង្ហាប់រូបភាព...', 'warning');
+        const file = document.getElementById('productImage').files[0];
+        if(!file) return showCustomToast('សូមជ្រើសរើសរូបភាព', 'error');
+
+        document.getElementById('loading').style.display = 'flex';
+        document.getElementById('loadingText').innerText = "កំពុងបង្រួមរូបភាព និងរក្សាទុក...";
 
         try {
-            // បង្ហាប់រូបភាព៖ 800px, គុណភាព 0.6
-            const compressedBase64 = await compressImage(f, 800, 800, 0.6);
+            // បង្រួមរូបភាពមកត្រឹម 800px គុណភាព 0.5 (តូចខ្លាំង តែមើលច្បាស់)
+            const compressedBase64 = await compressImage(file, 800, 800, 0.5);
             
-            let n = new Date();
-            let d = n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0') + '-' + String(n.getDate()).padStart(2,'0');
-            
-            let newOrder = { 
-                customer: document.getElementById('customerName').value, 
-                type: document.getElementById('productType').value, 
-                qty: document.getElementById('quantity').value, 
-                img: compressedBase64, 
-                date: d, 
+            const n = new Date();
+            const dateStr = n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0') + '-' + String(n.getDate()).padStart(2,'0');
+
+            const newOrder = {
+                customer: document.getElementById('customerName').value,
+                type: document.getElementById('productType').value,
+                qty: document.getElementById('quantity').value,
+                img: compressedBase64,
+                date: dateStr,
                 status: 'pending',
                 is_archive: false
             };
 
-            let tempId = Date.now();
-            orders.push({ ...newOrder, id: tempId });
-            render(); e.target.reset();
-
-            let response = await fetch(SUPABASE_URL + "/rest/v1/orders", {
-                method: 'POST', headers: HEADERS, body: JSON.stringify(newOrder)
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/orders`, {
+                method: 'POST',
+                headers: HEADERS,
+                body: JSON.stringify(newOrder)
             });
 
-            if (!response.ok) throw new Error("Cloud Insert Failed");
-            let result = await response.json();
-            if (result && result.length > 0) {
-                let idx = orders.findIndex(o => o.id === tempId);
-                if (idx !== -1) orders[idx].id = result[0].id;
-                render();
-                showCustomToast('✅ រក្សាទុកជោគជ័យ (រូបភាពតូច)', 'success');
+            if(res.ok) {
+                showCustomToast('រក្សាទុកបានជោគជ័យ!');
+                e.target.reset();
+                loadFromCloud();
             }
-        } catch(err) { showCustomToast('⚠️ រក្សាទុក Cloud បរាជ័យ', 'error'); }
+        } catch(err) { showCustomToast('Error saving data', 'error'); }
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('loadingText').innerText = "កំពុងដំណើរការ...";
     };
-    
+
     async function toggleStatus(id) {
-        let arr = showingArchive ? archive : orders, item = arr.find(o => o.id === id);
-        if (!item) return;
-        item.status = item.status === 'pending' ? 'shipped' : 'pending';
+        const allData = [...orders, ...archive];
+        const item = allData.find(o => o.id === id);
+        if(!item) return;
+        
+        const newStatus = item.status === 'pending' ? 'shipped' : 'pending';
+        item.status = newStatus;
         render();
-        try { await fetch(SUPABASE_URL + "/rest/v1/orders?id=eq." + id, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ status: item.status }) }); }
-        catch (e) { showCustomToast('Update Error', 'warning'); }
+
+        await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${id}`, {
+            method: 'PATCH',
+            headers: HEADERS,
+            body: JSON.stringify({ status: newStatus })
+        });
     }
-    
+
     async function deleteSingle(id) {
-        if(confirm('លុប?') && prompt('PASS:') === PASS) {
-            if(showingArchive) archive = archive.filter(o => o.id !== id); else orders = orders.filter(o => o.id !== id);
-            render();
-            try { await fetch(SUPABASE_URL + "/rest/v1/orders?id=eq." + id, { method: 'DELETE', headers: HEADERS }); }
-            catch (e) { showCustomToast('Delete Error', 'warning'); }
+        if(confirm('លុបកម្មង់នេះ?') && prompt('លេខកូដ:') === "1234") {
+            await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${id}`, { method: 'DELETE', headers: HEADERS });
+            loadFromCloud();
         }
     }
-    
-    function printInvoice(id) {
-        let o = orders.find(o => o.id === id) || archive.find(o => o.id === id);
-        if(!o) return;
-        let w = window.open('', '_blank');
-        w.document.write(`<html><body style="font-family:Khmer OS Battambang;padding:20px;"><h2>DE HENG KHAI</h2><p>រោងចក្រ: ${o.customer}</p><p>ប្រភេទ: ${o.type}</p><p>បរិមាណ: ${o.qty}</p><p>ថ្ងៃខែ: ${o.date}</p><img src="${o.img}" style="max-width:100%;"><script>setTimeout(()=> {window.print();window.close();},500);<\/script></body></html>`);
+
+    function render() {
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        let data = showingArchive ? archive : orders;
+        if(search) data = data.filter(o => o.customer.toLowerCase().includes(search));
+
+        const tb = document.getElementById('tableBody');
+        const gl = document.getElementById('gallery');
+        tb.innerHTML = ''; gl.innerHTML = '';
+
+        // Group by date
+        const groups = {};
+        data.forEach(o => { if(!groups[o.date]) groups[o.date] = []; groups[o.date].push(o); });
+
+        Object.keys(groups).sort((a,b) => b.localeCompare(a)).forEach(date => {
+            const list = groups[date];
+            gl.innerHTML += `<div class="date-header"><div>${date}</div><div class="stat-badge">សរុប: ${list.length}</div></div>`;
+
+            list.forEach(o => {
+                const isShipped = o.status === 'shipped';
+                tb.innerHTML += `
+                    <tr>
+                        <td><b>${escapeHtml(o.customer)}</b></td>
+                        <td>${escapeHtml(o.type)}</td>
+                        <td><b style="color:red">${escapeHtml(o.qty)}</b></td>
+                        <td>${o.date}</td>
+                        <td><button onclick="toggleStatus(${o.id})" class="btn-status ${isShipped ? 'bg-success' : 'bg-warning'}">${isShipped ? 'ផ្ញើររួច' : 'ផលិត...'}</button></td>
+                        <td><button onclick="deleteSingle(${o.id})" class="btn btn-red"><i class="fas fa-trash"></i></button></td>
+                    </tr>`;
+
+                gl.innerHTML += `
+                    <div class="image-item ${isShipped ? 'shipped' : ''}">
+                        <img src="${o.img}" onclick="viewImage('${o.img}','${o.customer}','${o.qty}','${o.type}')">
+                        <div style="padding:5px;">
+                            <h4>${escapeHtml(o.customer)}</h4>
+                            <div style="font-size:0.75rem;">ចំនួន: <b style="color:red">${escapeHtml(o.qty)}</b></div>
+                            <button onclick="toggleStatus(${o.id})" class="btn-status ${isShipped ? 'bg-success' : 'bg-warning'}" style="width:100%;margin-top:5px;">${isShipped ? '✅ បានផ្ញើរ' : '🔄 ផលិតកម្ម'}</button>
+                        </div>
+                    </div>`;
+            });
+        });
     }
-    
-    function closeMonth() { if(confirm('បិទបញ្ជីខែ?') && prompt('PASS:') === PASS) { orders.forEach(o => o.is_archive = true); archive = [...archive, ...orders]; orders = []; render(); saveAllToCloud(); } }
-    function deleteMonth() { if(confirm('លុបទាំងអស់?') && prompt('PASS:') === PASS) { orders = []; archive = []; render(); saveAllToCloud(); } }
-    
-    function filterData() {
-        let q = document.getElementById('searchInput').value.toLowerCase().trim();
-        let src = showingArchive ? archive : orders;
-        filteredData = q || activeDateFilter ? src.filter(o => (!q || o.customer.toLowerCase().includes(q)) && (!activeDateFilter || o.date === activeDateFilter)) : null;
-        render();
+
+    function viewImage(src, name, qty, type) {
+        const viewer = document.getElementById('viewer');
+        document.getElementById('viewerImg').src = src;
+        document.getElementById('viewerInfo').innerHTML = `<b>${name}</b> | ${type} | ចំនួន: ${qty}`;
+        viewer.style.display = 'flex';
     }
-    function searchByDate() { activeDateFilter = document.getElementById('dateSearchInput').value; filterData(); }
-    function clearDateSearch() { activeDateFilter = null; document.getElementById('dateSearchInput').value = ''; filterData(); }
-    function toggleArchive() { showingArchive = !showingArchive; clearDateSearch(); render(); }
-    function viewImage(s, n, q, t) {
-        document.getElementById('viewer').style.display = 'flex'; document.getElementById('viewerImg').src = s;
-        document.getElementById('viewerInfo').innerHTML = `<b>${escapeHtml(n)}</b> | ${escapeHtml(t)} | ចំនួន: <span style="color:red">${escapeHtml(q)}</span>`;
-    }
-    
+
+    function toggleArchive() { showingArchive = !showingArchive; render(); }
+
     window.onload = () => {
         loadFromCloud();
-        document.getElementById('date-display').innerHTML = 'ថ្ងៃនេះ: ' + getToday();
-        document.getElementById('dateSearchInput').max = getToday();
+        const n = new Date();
+        document.getElementById('date-display').innerText = 'ថ្ងៃនេះ: ' + n.toISOString().split('T')[0];
     };
 </script>
 </body>

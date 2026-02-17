@@ -558,11 +558,22 @@
     function escapeHtml(t) { let d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
     function getToday() { return new Date().toISOString().split('T')[0]; }
     function filterData() {
+        // ចាប់យកតម្លៃពីប្រអប់ស្វែងរកឈ្មោះ
         let q = document.getElementById('searchInput').value.toLowerCase().trim();
+        // កំណត់ប្រភពទិន្នន័យ (Current ឬ Archive)
         let src = showingArchive ? archive : orders;
-        filteredData = q ? src.filter(o => o.customer.toLowerCase().includes(q)) : null;
+        
+        // លក្ខខណ្ឌចម្រោះថ្មី៖ ឆែកទាំងឈ្មោះ (q) និង ថ្ងៃខែ (activeDateFilter)
+        filteredData = src.filter(o => {
+            const matchName = !q || o.customer.toLowerCase().includes(q);
+            const matchDate = !activeDateFilter || o.date === activeDateFilter;
+            return matchName && matchDate;
+        });
+        
+        // បង្ហាញលទ្ធផលទៅលើអេក្រង់
         render();
     }
+    
     function searchByDate() { activeDateFilter = document.getElementById('dateSearchInput').value; filterData(); }
     function clearDateSearch() { activeDateFilter = null; document.getElementById('dateSearchInput').value = ''; filterData(); }
     function toggleArchive() { showingArchive = !showingArchive; render(); }

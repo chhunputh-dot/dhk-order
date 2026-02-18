@@ -285,17 +285,23 @@
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:5px;">
             <h3><i class="fas fa-list"></i> បញ្ជីកម្មង់ | 订单列表</h3>
             <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                <button class="btn btn-info" onclick="alert('មុខងារនឹងមកដល់ឆាប់ៗ...')">
+                    <i class="fas fa-file-alt"></i> របាយការណ៍ខែ(月度报告)
+                </button>
+                
+                <!-- Backup Buttons -->
                 <button class="btn btn-success" onclick="manualBackupToComputer()">
-                    <i class="fas fa-download"></i> Backup
+                    <i class="fas fa-download"></i> Backup(备份)
                 </button>
                 <button class="btn btn-warning" onclick="restoreFromComputer()">
-                    <i class="fas fa-upload"></i> Restore
+                    <i class="fas fa-upload"></i> Recovery(恢复)
                 </button>
+                
                 <button class="btn btn-pink" onclick="closeMonth()">
-                    <i class="fas fa-calendar-check"></i> បិទបញ្ជី
+                    <i class="fas fa-calendar-check"></i> បិទបញ្ជី(关闭列表)
                 </button>
                 <button class="btn btn-red" onclick="deleteMonth()">
-                    <i class="fas fa-trash"></i> លុបទាំងអស់
+                    <i class="fas fa-trash"></i> លុបទិន្នន័យទាំងអស់(删除所有数据)
                 </button>
             </div>
         </div>
@@ -488,32 +494,45 @@
         data.forEach(o => { if(!byDate[o.date]) byDate[o.date] = []; byDate[o.date].push(o); });
         let dates = Object.keys(byDate).sort((a,b) => b.localeCompare(a));
         
+        // បង្ហាញក្នុងតារាង
         data.forEach(o => {
             let s = o.status === 'shipped';
             tb.innerHTML += `<tr>
-                <td><b>${escapeHtml(o.customer)}</b></td>
+                <td><b style="color: red;">${escapeHtml(o.customer)}</b></td>
                 <td>${escapeHtml(o.type)}</td>
                 <td><b style="color:red">${escapeHtml(o.qty)}</b></td>
                 <td>${o.date}</td>
                 <td><button onclick="toggleStatus(${o.id})" class="btn-status ${s ? 'bg-success' : 'bg-warning'}">${s ? '已发货' : '生产中'}</button></td>
-                <td><button onclick="deleteSingle(${o.id})" class="btn btn-red"><i class="fas fa-trash"></i></button></td>
+                <td>
+                    ${s && o.shippedDate ? `<div style="font-size:10px; color:green; margin-top:2px;">ផ្ញើរចេញ(已发货)៖ ${o.shippedDate}
+                </div>` : ''}
+                    <button onclick="printInvoice(${o.id})" class="btn" style="background:#2ecc71;padding:4px;"><i class="fas fa-print"></i></button> 
+                    <button onclick="deleteSingle(${o.id})" class="btn btn-red" style="padding:4px;"><i class="fas fa-trash"></i></button>
+                </td>
             </tr>`;
         });
         
         dates.forEach(d => {
             let list = byDate[d], shipped = list.filter(o => o.status === 'shipped'), pending = list.filter(o => o.status === 'pending');
             gl.innerHTML += `<div class="date-header">
-                <div><i class="far fa-calendar-alt"></i> ${d}</div>
-                <div class="stats"><span class="stat-badge total">សរុប: ${list.length}</span><span class="stat-badge shipped">ផ្ញើរ: ${shipped.length}</span></div>
+                <div class="date-title">
+                    <i class="far fa-calendar-alt"></i> ${d} ${d===today ? ' <span style="background:#ffc107;color:#000;padding:2px 6px;border-radius:10px;">ថ្ងៃនេះ</span>' : ''}
+                </div>
+                <div class="stats">
+                    <span class="stat-badge total">សរុប: ${list.length}</span>
+                    <span class="stat-badge shipped">បានផ្ញើរ: ${shipped.length}</span>
+                    <span class="stat-badge pending">ផលិតកម្ម: ${pending.length}</span>
+                </div>
             </div>`;
+
             list.forEach(o => {
                 let s = o.status === 'shipped';
                 gl.innerHTML += `<div class="image-item ${s ? 'shipped' : ''}">
                     <img src="${o.img}" onclick="viewImage('${o.img}','${escapeHtml(o.customer)}','${escapeHtml(o.qty)}','${escapeHtml(o.type)}')">
                     <div style="padding:5px;">
-                        <h4>${escapeHtml(o.customer)}</h4>
+                        <h4 style="color: red; font-weight: bold;">${escapeHtml(o.customer)}</h4>
                         <div class="item-details"><div><span>ប្រភេទ:</span> ${escapeHtml(o.type)}</div><div><span>បរិមាណ:</span> <b style="color:red">${escapeHtml(o.qty)}</b></div></div>
-                        <button onclick="toggleStatus(${o.id})" class="btn-status ${s ? 'bg-success' : 'bg-warning'}" style="width:100%;">${s ? '✅ បានផ្ញើរ' : '🔄 ផលិតកម្ម'}</button>
+                        <button onclick="toggleStatus(${o.id})" class="btn-status ${s ? 'bg-success' : 'bg-warning'}" style="width:100%;">${s ? '✅ 已发货' : '🔄 生产中'}</button>
                     </div>
                 </div>`;
             });
@@ -523,18 +542,68 @@
 
     // ==================== 4. UTILS ====================
     async function toggleStatus(id) {
-        let arr = showingArchive ? archive : orders, item = arr.find(o => o.id === id);
-        if (!item) return;
-        item.status = item.status === 'pending' ? 'shipped' : 'pending';
-        render();
-        await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${id}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ status: item.status }) });
+       let arr = showingArchive ? archive : orders;
+    let i = arr.findIndex(o => o.id === id);
+    if (i !== -1) {
+        arr[i].status = arr[i].status === 'pending' ? 'shipped' : 'pending';
+        // បើស្ថានភាពជា shipped ឱ្យកត់ថ្ងៃនេះ បើមិនមែនឱ្យលុបថ្ងៃចេញ
+        if(arr[i].status === 'shipped') arr[i].shippedDate = getToday(); else delete arr[i].shippedDate;
+    render(); 
+    saveToCloud();
+    } 
+    // ធ្វើបច្ចុប្បន្នភាពទិន្នន័យដែលបាន Filter (បើមាន)
+    if(filteredData) {
+        filteredData = filteredData.map(o => {
+            if(o.id === id) {
+                let newStatus = o.status === 'pending' ? 'shipped' : 'pending';
+                return {
+                    ...o, 
+                    status: newStatus,
+                    shippedDate: newStatus === 'shipped' ? getToday() : undefined
+                };
+            }
+            return o;
+        });
     }
+    render(); 
+    saveToCloud();
+}
 
     async function deleteSingle(id) {
         if(confirm('លុប?') && prompt('PASS:') === PASS) {
             await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${id}`, { method: 'DELETE', headers: HEADERS });
             loadFromCloud();
         }
+    }
+
+    // បោះពុម្ពវិក្កយបត្រ
+    function printInvoice(id) {
+        let o = orders.find(o => o.id === id) || archive.find(o => o.id === id);
+        if(!o) return;
+        let w = window.open('', '_blank');
+        w.document.write(`<html>
+            <head>
+                <style>
+                    body{font-family:'Khmer OS Battambang';padding:15px;}
+                    img{max-width:100%;margin-top:10px;}
+                </style>
+            </head>
+            <body>
+                <h2>DE HENG KHAI</h2>
+                <p><b>រោងចក្រ:</b> ${escapeHtml(o.customer)}</p>
+                <p><b>ប្រភេទ:</b> ${escapeHtml(o.type)}</p>
+                <p><b>បរិមាណ:</b> ${escapeHtml(o.qty)}</p>
+                <p><b>ថ្ងៃខែ:</b> ${o.date}</p>
+                <p><b>ស្ថានភាព:</b> ${o.status === 'pending' ? 'ផលិតកម្ម' : 'បានផ្ញើរ'}</p>
+                <img src="${o.img}">
+                <script>
+                    setTimeout(()=>{
+                        window.print();
+                        window.close();
+                    },500);
+                <\/script>
+            </body>
+        </html>`);
     }
 
     function manualBackupToComputer() {
@@ -578,11 +647,24 @@
     function clearDateSearch() { activeDateFilter = null; document.getElementById('dateSearchInput').value = ''; filterData(); }
     function toggleArchive() { showingArchive = !showingArchive; render(); }
     function viewImage(s, n, q, t) {
-        document.getElementById('viewer').style.display = 'flex'; document.getElementById('viewerImg').src = s;
-        document.getElementById('viewerInfo').innerHTML = `<b>${n}</b> | ${t} | ${q}`;
+        document.getElementById('viewer').style.display = 'flex';
+        document.getElementById('viewerImg').src = s;
+        document.getElementById('viewerInfo').innerHTML = `
+            <div><b>រោងចក្រ:</b> <span style="color: red; font-weight: bold;">${escapeHtml(n)}</span></div>
+            <div><b>ប្រភេទ:</b> ${escapeHtml(t)}</div>
+            <div><b>ចំនួន:</b> <span style="color:red; font-weight:bold;">${escapeHtml(q)}</span></div>
+        `;
     }
 
-    window.onload = loadFromCloud;
+    window.onload = () => {
+        loadFromCloud();
+        let n = new Date();
+        document.getElementById('date-display').innerHTML = 'ថ្ងៃនេះ | 今天: ' + 
+            n.getFullYear() + '-' + 
+            String(n.getMonth()+1).padStart(2,'0') + '-' + 
+            String(n.getDate()).padStart(2,'0');
+        document.getElementById('dateSearchInput').max = getToday();
+    };
 </script>
 </body>
 </html>

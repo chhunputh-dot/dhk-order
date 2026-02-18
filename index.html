@@ -535,46 +535,82 @@
                         <button onclick="toggleStatus(${o.id})" class="btn-status ${s ? 'bg-success' : 'bg-warning'}" style="width:100%;">${s ? '✅ 已发货' : '🔄 生产中'}</button>
                     </div>
                 </div>`;
-            });
+           });
         });
         document.getElementById('gallerySummary').innerHTML = `📊 ថ្ងៃនេះ: <b style="color:green">${orders.filter(o=>o.date===today).length}</b> | សរុប: <b style="color:red">${orders.length}</b>`;
     }
 
     // ==================== 4. UTILS ====================
+    // ==================== 4. UTILS ====================
     async function toggleStatus(id) {
-       let arr = showingArchive ? archive : orders;
-    let i = arr.findIndex(o => o.id === id);
-    if (i !== -1) {
-        arr[i].status = arr[i].status === 'pending' ? 'shipped' : 'pending';
-        // បើស្ថានភាពជា shipped ឱ្យកត់ថ្ងៃនេះ បើមិនមែនឱ្យលុបថ្ងៃចេញ
-        if(arr[i].status === 'shipped') arr[i].shippedDate = getToday(); else delete arr[i].shippedDate;
-    render(); 
-    saveToCloud();
-    } 
-    // ធ្វើបច្ចុប្បន្នភាពទិន្នន័យដែលបាន Filter (បើមាន)
-    if(filteredData) {
-        filteredData = filteredData.map(o => {
-            if(o.id === id) {
-                let newStatus = o.status === 'pending' ? 'shipped' : 'pending';
-                return {
-                    ...o, 
-                    status: newStatus,
-                    shippedDate: newStatus === 'shipped' ? getToday() : undefined
-                };
-            }
-            return o;
+    let arr = showingArchive ? archive : orders;
+    let item = arr.find(o => o.id === id);
+    if (!item) return;
+    
+    let oldStatus = item.status;
+    let newStatus = item.status === 'pending' ? 'shipped' : 'pending';
+    
+    // 1. កែ status មុន (Optimistic Update)
+    item.status = newStatus;
+    render();
+    
+    try {
+        // 2. ផ្ញើតែ status ទៅ Server (មិនផ្ញើ shippedDate)
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${id}`, {
+            method: 'PATCH',
+            headers: HEADERS,
+            body: JSON.stringify({ 
+                status: newStatus
+                // លែងផ្ញើ shippedDate ហើយ
+            })
         });
-    }
-    render(); 
-    saveToCloud();
-}
-
-    async function deleteSingle(id) {
-        if(confirm('លុប?') && prompt('PASS:') === PASS) {
-            await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${id}`, { method: 'DELETE', headers: HEADERS });
-            loadFromCloud();
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Server update failed: ${response.status} - ${errorText}`);
         }
+        
+        // 3. ជោគជ័យ
+        showCustomToast('✅ បានផ្លាស់ប្តូរស្ថានភាពដោយជោគជ័យ');
+        
+    } catch (error) {
+        console.error("Error:", error);
+        
+        // 4. Rollback បើបរាជ័យ
+        item.status = oldStatus;
+        render();
+        
+        // 5. បង្ហាញសារកំហុស
+        let errorMessage = '⚠️ បរាជ័យក្នុងការផ្លាស់ប្តូរ';
+        if (error.message.includes('401')) {
+            errorMessage = '⚠️ បញ្ហា Authentication (API Key មិនត្រឹមត្រូវ)';
+        } else if (error.message.includes('404')) {
+            errorMessage = '⚠️ រកមិនឃើញ Order នេះក្នុង Database';
+        } else if (error.message.includes('Failed to fetch')) {
+            errorMessage = '⚠️ មិនអាចភ្ជាប់ទៅ Server បានទេ (ពិនិត្យ Internet)';
+        }
+        
+        showCustomToast(errorMessage, 'error');
     }
+}
+    
+     // <-- កន្លែងនេះត្រូវកែ
+    async function deleteSingle(id) {
+    if(confirm('លុប?') && prompt('PASS:') === PASS) {
+        document.getElementById('loading').style.display = 'flex';
+        try {
+            await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${id}`, { 
+                method: 'DELETE', 
+                headers: HEADERS 
+            });
+            await loadFromCloud();
+            showCustomToast('✅ បានលុបដោយជោគជ័យ');
+        } catch (error) {
+            showCustomToast('⚠️ បរាជ័យក្នុងការលុប', 'error');
+        }
+        document.getElementById('loading').style.display = 'none';
+    }
+}
 
     // បោះពុម្ពវិក្កយបត្រ
     function printInvoice(id) {

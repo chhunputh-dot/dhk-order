@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>DHK - Cloud Order System (Fast & Compressed)</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
         * { 
             margin: 0; 
@@ -404,13 +405,13 @@
             <table>
                 <thead>
                     <tr>
-                        <th>រោងចក្រ</th>
-                        <th>ប្រភេទ</th>
-                        <th>បរិមាណ</th>
-                        <th>ថ្ងៃបញ្ចូល</th>
-                        <th>ផ្ញើរថ្ងៃ</th>
-                        <th>ស្ថានភាព</th>
-                        <th>សកម្មភាព</th>
+                        <th>工厂</th>
+                        <th>类型</th>
+                        <th>数量</th>
+                        <th>下单日期</th>
+                        <th>送货日期</th>
+                        <th>状态</th>
+                        <th>操作</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody"></tbody>
@@ -452,8 +453,8 @@
 
 <script>
     // ==================== CONFIGURATION ====================
-    const SUPABASE_URL = "https://okwzugwqylttpatvzqhh.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rd3p1Z3dxeWx0dHBhdHZ6cWhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyMjczOTksImV4cCI6MjA4NjgwMzM5OX0.KkX-Bgk8uLQEgmDFITUeiBr1iuRppociU4kUrAgCOlU";
+    const SUPABASE_URL = "https://eywjiqfretknndnoubrd.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5d2ppcWZyZXRrbm5kbm91YnJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwMzAxMzEsImV4cCI6MjA4NjYwNjEzMX0.L9r2ocKJ-n0LnsP6jwA2SB6e07fhRjScPlI0CBRrV9E";
     const HEADERS = { 
         "apikey": SUPABASE_KEY, 
         "Authorization": "Bearer " + SUPABASE_KEY, 
@@ -546,15 +547,15 @@
             if (!file) return showCustomToast('សូមជ្រើសរើសរូបភាព', 'error');
             document.getElementById('loading').style.display = 'flex';
             try {
-                const compressedBase64 = await compressImage(file);
+                showCustomToast('⏳ Upload រូបភាព...', 'info');
+                const imageURL = await uploadImageToStorage(file);
                 const dueDateVal = document.getElementById('dueDate').value;
 
-                // POST ទៅ Supabase (គ្មាន due_date)
                 const newOrder = {
                     customer: document.getElementById('customerName').value,
                     type: document.getElementById('productType').value,
                     qty: document.getElementById('quantity').value,
-                    img: compressedBase64,
+                    img: imageURL,
                     date: getToday(),
                     status: 'pending',
                     is_archive: false
@@ -588,27 +589,42 @@
         };
     }
 
-    // ==================== 2. IMAGE COMPRESSION ====================
-    async function compressImage(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
+    // ==================== 2. IMAGE COMPRESSION + STORAGE ====================
+    // Supabase client singleton — បង្កើតតែម្តង
+    let _SB = null;
+    function getSB() {
+        if (!_SB) _SB = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        return _SB;
+    }
+
+    async function compressImageToBlob(file) {
+        return new Promise(function(resolve) {
+            var reader = new FileReader();
             reader.readAsDataURL(file);
-            reader.onload = (event) => {
-                const img = new Image();
-                img.src = event.target.result;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width, height = img.height;
-                    const max_size = 800; 
-                    if (width > height) { if (width > max_size) { height = Math.round(height * (max_size / width)); width = max_size; } }
-                    else { if (height > max_size) { width = Math.round(width * (max_size / height)); height = max_size; } }
-                    canvas.width = width; canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-                    resolve(canvas.toDataURL('image/jpeg', 0.6));
+            reader.onload = function(e) {
+                var img = new Image();
+                img.src = e.target.result;
+                img.onload = function() {
+                    var c = document.createElement('canvas');
+                    var w = img.width, h = img.height, m = 800;
+                    if (w > h) { if (w > m) { h = Math.round(h*m/w); w = m; } }
+                    else { if (h > m) { w = Math.round(w*m/h); h = m; } }
+                    c.width = w; c.height = h;
+                    c.getContext('2d').drawImage(img,0,0,w,h);
+                    c.toBlob(function(b){ resolve(b); },'image/jpeg',0.6);
                 };
             };
         });
+    }
+
+    async function uploadImageToStorage(file) {
+        var blob = await compressImageToBlob(file);
+        var fn = 'order_' + Date.now() + '_' + Math.random().toString(36).substr(2,9) + '.jpg';
+        var r = await getSB().storage.from('order-images').upload(fn, blob, {
+            contentType: 'image/jpeg', upsert: true
+        });
+        if (r.error) throw new Error('Storage Error: ' + r.error.message);
+        return getSB().storage.from('order-images').getPublicUrl(fn).data.publicUrl;
     }
 
     // ==================== 3. DATA ACTIONS ====================
@@ -704,8 +720,8 @@
                 <div class="date-title"><i class="far fa-calendar-alt"></i> ${d} ${d===today ? ' <span style="background:#ffc107;color:#000;padding:2px 6px;border-radius:10px;">ថ្ងៃនេះ</span>' : ''}</div>
                 <div class="stats">
                     <span class="stat-badge total">សរុប: ${list.length}</span>
-                    <span class="stat-badge shipped">បានផ្ញើរ: ${shipped.length}</span>
-                    <span class="stat-badge pending">ផលិតកម្ម: ${pending.length}</span>
+                    <span class="stat-badge shipped">已发送: ${shipped.length}</span>
+                    <span class="stat-badge pending">生产中: ${pending.length}</span>
                 </div>
             </div>`;
             list.forEach(o => {
@@ -714,8 +730,8 @@
                     <img src="${o.img}" onclick="viewImage('${o.img}','${escapeHtml(o.customer)}','${escapeHtml(o.qty)}','${escapeHtml(o.type)}')">
                     <div style="padding:5px;">
                         <h4 style="color: red; font-weight: bold;">${escapeHtml(o.customer)}</h4>
-                        <div class="item-details"><div><span>ប្រភេទ:</span> ${escapeHtml(o.type)}</div><div><span>បរិមាណ:</span> <b style="color:red">${escapeHtml(o.qty)}</b></div>${o.due_date ? `<div><span>ផ្ញើរ:</span> <b style="color:#e67e22">${o.due_date}</b></div>` : ''}</div>
-                        <button onclick="toggleStatus(${o.id})" class="btn-status ${s ? 'bg-success' : 'bg-warning'}" style="width:100%;">${s ? '✅ បានផ្ញើរ' : '🔄 ផលិតកម្ម'}</button>
+                        <div class="item-details"><div><span>ប្រភេទ:</span> ${escapeHtml(o.type)}</div><div><span>បរិមាណ:</span> <b style="color:red">${escapeHtml(o.qty)}</b></div>${o.due_date ? `<div><span>送:</span> <b style="color:#e67e22">${o.due_date}</b></div>` : ''}</div>
+                        <button onclick="toggleStatus(${o.id})" class="btn-status ${s ? 'bg-success' : 'bg-warning'}" style="width:100%;">${s ? '✅ 已发送' : '🔄 生产中'}</button>
                     </div>
                 </div>`;
             });
@@ -757,7 +773,7 @@
                 <td><b style="color:red">${escapeHtml(o.qty)}</b></td>
                 <td>${o.date}</td>
                 <td>${dueBadge}</td>
-                <td><button onclick="toggleStatus(${o.id})" class="btn-status ${s ? 'bg-success' : 'bg-warning'}">${s ? '✅ បានផ្ញើរ' : '🔄 ផលិតកម្ម'}</button></td>
+                <td><button onclick="toggleStatus(${o.id})" class="btn-status ${s ? 'bg-success' : 'bg-warning'}">${s ? '✅ 已发送' : '🔄 生产中'}</button></td>
                 <td>
                     ${s && o.shippedDate ? `<div style="font-size:10px; color:green; margin-top:2px;">ផ្ញើរចេញ: ${o.shippedDate}</div>` : ''}
                     <button onclick="printInvoice(${o.id})" class="btn" style="background:#2ecc71;padding:4px;"><i class="fas fa-print"></i></button> 
@@ -817,7 +833,7 @@
                 const errorText = await response.text();
                 throw new Error(`Server update failed: ${response.status} - ${errorText}`);
             }
-            const statusLabel = newStatus === 'shipped' ? 'បានផ្ញើរ ✅' : 'ផលិតកម្ម 🔄';
+            const statusLabel = newStatus === 'shipped' ? '已发送 ✅' : '生产中 🔄';
             showCustomToast(`✅ ${item.customer}: ${statusLabel}`);
         } catch (error) {
             console.error("Error:", error);
@@ -835,8 +851,13 @@
         if (confirm('លុប?') && prompt('PASS:') === PASS) {
             document.getElementById('loading').style.display = 'flex';
             try {
+                var o = orders.find(function(x){return x.id===id;}) || archive.find(function(x){return x.id===id;});
+                if (o && o.img && o.img.indexOf('/order-images/') > -1) {
+                    var fn = o.img.split('/order-images/')[1];
+                    await getSB().storage.from('order-images').remove([fn]);
+                }
                 await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${id}`, { method: 'DELETE', headers: HEADERS });
-                deleteDueDate(id); // លុប due_date ពី localStorage ផង
+                deleteDueDate(id);
                 await loadFromCloud();
                 showCustomToast('✅ បានលុបដោយជោគជ័យ');
             } catch (error) { showCustomToast('⚠️ បរាជ័យក្នុងការលុប', 'error'); }
@@ -855,7 +876,7 @@
             <p><b>ប្រភេទ:</b> ${escapeHtml(o.type)}</p>
             <p><b>បរិមាណ:</b> ${escapeHtml(o.qty)}</p>
             <p><b>ថ្ងៃខែ:</b> ${o.date}</p>
-            <p><b>ស្ថានភាព:</b> ${o.status === 'pending' ? 'ផលិតកម្ម' : 'បានផ្ញើរ'}</p>
+            <p><b>ស្ថានភាព:</b> ${o.status === 'pending' ? '生产中' : '已发送'}</p>
             <img src="${o.img}">
             <script>setTimeout(()=>{window.print();window.close();},500);<\/script>
         </body></html>`);
@@ -901,9 +922,9 @@
         document.getElementById('viewer').style.display = 'flex';
         document.getElementById('viewerImg').src = s;
         document.getElementById('viewerInfo').innerHTML = `
-            <div><b>រោងចក្រ:</b> <span style="color: red; font-weight: bold;">${escapeHtml(n)}</span></div>
-            <div><b>ប្រភេទ:</b> ${escapeHtml(t)}</div>
-            <div><b>ចំនួន:</b> <span style="color:red; font-weight:bold;">${escapeHtml(q)}</span></div>
+            <div><b>工厂:</b> <span style="color: yellow; font-weight: bold;">${escapeHtml(n)}</span></div>
+            <div><b>类型:</b> ${escapeHtml(t)}</div>
+            <div><b>数量:</b> <span style="color:yellow; font-weight:bold;">${escapeHtml(q)}</span></div>
         `;
     }
 
@@ -959,11 +980,11 @@
                 </div>
                 <div class="summary-card shipped-card">
                     <div class="sc-num">${shipped.length}</div>
-                    <div class="sc-label">✅ បានផ្ញើរ</div>
+                    <div class="sc-label">✅ 已发送</div>
                 </div>
                 <div class="summary-card pending-card">
                     <div class="sc-num">${pending.length}</div>
-                    <div class="sc-label">🔄 ផលិតកម្ម</div>
+                    <div class="sc-label">🔄 生产中</div>
                 </div>
                 <div class="summary-card" style="border-left-color:#17a2b8;">
                     <div class="sc-num" style="color:#17a2b8;">${Object.keys(byCustomer).length}</div>
@@ -977,8 +998,8 @@
                 <thead><tr>
                     <th style="padding:6px; text-align:left;">រោងចក្រ</th>
                     <th style="padding:6px; text-align:center;">សរុប</th>
-                    <th style="padding:6px; text-align:center;">✅ បានផ្ញើរ</th>
-                    <th style="padding:6px; text-align:center;">🔄 ផលិតកម្ម</th>
+                    <th style="padding:6px; text-align:center;">✅ 已发送</th>
+                    <th style="padding:6px; text-align:center;">🔄 生产中</th>
                 </tr></thead>
                 <tbody>
                 ${Object.entries(byCustomer).sort((a,b) => (b[1].shipped+b[1].pending)-(a[1].shipped+a[1].pending)).map(([name, d]) => `

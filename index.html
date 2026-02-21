@@ -405,13 +405,13 @@
             <table>
                 <thead>
                     <tr>
-                        <th>工厂</th>
-                        <th>类型</th>
-                        <th>数量</th>
-                        <th>下单日期</th>
-                        <th>送货日期</th>
-                        <th>状态</th>
-                        <th>操作</th>
+                        <th>រោងចក្រ</th>
+                        <th>ប្រភេទ</th>
+                        <th>បរិមាណ</th>
+                        <th>ថ្ងៃបញ្ចូល</th>
+                        <th>ផ្ញើរថ្ងៃ</th>
+                        <th>ស្ថានភាព</th>
+                        <th>សកម្មភាព</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody"></tbody>
@@ -720,8 +720,8 @@
                 <div class="date-title"><i class="far fa-calendar-alt"></i> ${d} ${d===today ? ' <span style="background:#ffc107;color:#000;padding:2px 6px;border-radius:10px;">ថ្ងៃនេះ</span>' : ''}</div>
                 <div class="stats">
                     <span class="stat-badge total">សរុប: ${list.length}</span>
-                    <span class="stat-badge shipped">已发送: ${shipped.length}</span>
-                    <span class="stat-badge pending">生产中: ${pending.length}</span>
+                    <span class="stat-badge shipped">បានផ្ញើរ: ${shipped.length}</span>
+                    <span class="stat-badge pending">ផលិតកម្ម: ${pending.length}</span>
                 </div>
             </div>`;
             list.forEach(o => {
@@ -730,8 +730,8 @@
                     <img src="${o.img}" onclick="viewImage('${o.img}','${escapeHtml(o.customer)}','${escapeHtml(o.qty)}','${escapeHtml(o.type)}')">
                     <div style="padding:5px;">
                         <h4 style="color: red; font-weight: bold;">${escapeHtml(o.customer)}</h4>
-                        <div class="item-details"><div><span>ប្រភេទ:</span> ${escapeHtml(o.type)}</div><div><span>បរិមាណ:</span> <b style="color:red">${escapeHtml(o.qty)}</b></div>${o.due_date ? `<div><span>送:</span> <b style="color:#e67e22">${o.due_date}</b></div>` : ''}</div>
-                        <button onclick="toggleStatus(${o.id})" class="btn-status ${s ? 'bg-success' : 'bg-warning'}" style="width:100%;">${s ? '✅ 已发送' : '🔄 生产中'}</button>
+                        <div class="item-details"><div><span>ប្រភេទ:</span> ${escapeHtml(o.type)}</div><div><span>បរិមាណ:</span> <b style="color:red">${escapeHtml(o.qty)}</b></div>${o.due_date ? `<div><span>ផ្ញើរ:</span> <b style="color:#e67e22">${o.due_date}</b></div>` : ''}</div>
+                        <button onclick="toggleStatus(${o.id})" class="btn-status ${s ? 'bg-success' : 'bg-warning'}" style="width:100%;">${s ? '✅ បានផ្ញើរ' : '🔄 ផលិតកម្ម'}</button>
                     </div>
                 </div>`;
             });
@@ -756,11 +756,11 @@
                 const due = new Date(o.due_date); due.setHours(0,0,0,0);
                 const diff = Math.ceil((due - today2) / (1000*60*60*24));
                 if (diff < 0) {
-                    dueBadge = `<div class="due-badge overdue">🔴 ហួសថ្ងៃ ${Math.abs(diff)}ថ្ងៃ</div>`;
+                    dueBadge = `<div class="due-badge overdue">🔴 送: ${o.due_date}</div>`;
                 } else if (diff === 0) {
-                    dueBadge = `<div class="due-badge today-due">🟠 ផ្ញើរថ្ងៃនេះ!</div>`;
+                    dueBadge = `<div class="due-badge today-due">🟠 送: ${o.due_date}</div>`;
                 } else if (diff <= 2) {
-                    dueBadge = `<div class="due-badge urgent">🟡 នៅ ${diff}ថ្ងៃ</div>`;
+                    dueBadge = `<div class="due-badge urgent">🟡 送: ${o.due_date}</div>`;
                 } else {
                     dueBadge = `<div class="due-badge ok">📅 ${o.due_date}</div>`;
                 }
@@ -773,7 +773,7 @@
                 <td><b style="color:red">${escapeHtml(o.qty)}</b></td>
                 <td>${o.date}</td>
                 <td>${dueBadge}</td>
-                <td><button onclick="toggleStatus(${o.id})" class="btn-status ${s ? 'bg-success' : 'bg-warning'}">${s ? '✅ 已发送' : '🔄 生产中'}</button></td>
+                <td><button onclick="toggleStatus(${o.id})" class="btn-status ${s ? 'bg-success' : 'bg-warning'}">${s ? '✅ បានផ្ញើរ' : '🔄 ផលិតកម្ម'}</button></td>
                 <td>
                     ${s && o.shippedDate ? `<div style="font-size:10px; color:green; margin-top:2px;">ផ្ញើរចេញ: ${o.shippedDate}</div>` : ''}
                     <button onclick="printInvoice(${o.id})" class="btn" style="background:#2ecc71;padding:4px;"><i class="fas fa-print"></i></button> 
@@ -833,7 +833,7 @@
                 const errorText = await response.text();
                 throw new Error(`Server update failed: ${response.status} - ${errorText}`);
             }
-            const statusLabel = newStatus === 'shipped' ? '已发送 ✅' : '生产中 🔄';
+            const statusLabel = newStatus === 'shipped' ? 'បានផ្ញើរ ✅' : 'ផលិតកម្ម 🔄';
             showCustomToast(`✅ ${item.customer}: ${statusLabel}`);
         } catch (error) {
             console.error("Error:", error);
@@ -876,7 +876,7 @@
             <p><b>ប្រភេទ:</b> ${escapeHtml(o.type)}</p>
             <p><b>បរិមាណ:</b> ${escapeHtml(o.qty)}</p>
             <p><b>ថ្ងៃខែ:</b> ${o.date}</p>
-            <p><b>ស្ថានភាព:</b> ${o.status === 'pending' ? '生产中' : '已发送'}</p>
+            <p><b>ស្ថានភាព:</b> ${o.status === 'pending' ? 'ផលិតកម្ម' : 'បានផ្ញើរ'}</p>
             <img src="${o.img}">
             <script>setTimeout(()=>{window.print();window.close();},500);<\/script>
         </body></html>`);
@@ -922,9 +922,9 @@
         document.getElementById('viewer').style.display = 'flex';
         document.getElementById('viewerImg').src = s;
         document.getElementById('viewerInfo').innerHTML = `
-            <div><b>工厂:</b> <span style="color: yellow; font-weight: bold;">${escapeHtml(n)}</span></div>
-            <div><b>类型:</b> ${escapeHtml(t)}</div>
-            <div><b>数量:</b> <span style="color:yellow; font-weight:bold;">${escapeHtml(q)}</span></div>
+            <div><b>រោងចក្រ:</b> <span style="color: red; font-weight: bold;">${escapeHtml(n)}</span></div>
+            <div><b>ប្រភេទ:</b> ${escapeHtml(t)}</div>
+            <div><b>ចំនួន:</b> <span style="color:red; font-weight:bold;">${escapeHtml(q)}</span></div>
         `;
     }
 
@@ -980,11 +980,11 @@
                 </div>
                 <div class="summary-card shipped-card">
                     <div class="sc-num">${shipped.length}</div>
-                    <div class="sc-label">✅ 已发送</div>
+                    <div class="sc-label">✅ បានផ្ញើរ</div>
                 </div>
                 <div class="summary-card pending-card">
                     <div class="sc-num">${pending.length}</div>
-                    <div class="sc-label">🔄 生产中</div>
+                    <div class="sc-label">🔄 ផលិតកម្ម</div>
                 </div>
                 <div class="summary-card" style="border-left-color:#17a2b8;">
                     <div class="sc-num" style="color:#17a2b8;">${Object.keys(byCustomer).length}</div>
@@ -998,8 +998,8 @@
                 <thead><tr>
                     <th style="padding:6px; text-align:left;">រោងចក្រ</th>
                     <th style="padding:6px; text-align:center;">សរុប</th>
-                    <th style="padding:6px; text-align:center;">✅ 已发送</th>
-                    <th style="padding:6px; text-align:center;">🔄 生产中</th>
+                    <th style="padding:6px; text-align:center;">✅ បានផ្ញើរ</th>
+                    <th style="padding:6px; text-align:center;">🔄 ផលិតកម្ម</th>
                 </tr></thead>
                 <tbody>
                 ${Object.entries(byCustomer).sort((a,b) => (b[1].shipped+b[1].pending)-(a[1].shipped+a[1].pending)).map(([name, d]) => `
